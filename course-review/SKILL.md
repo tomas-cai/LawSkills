@@ -39,6 +39,11 @@ description: >-
 
 > 详细检查项见 `references/review-methodology.md` → 结构完整性
 
+**格式一致性（跨文档格式变更审计）**：
+当课程交付格式发生变更时（如 2 天→2 周），本检查确认所有文档统一使用新格式的术语。
+详见 `references/review-methodology.md` → 维度 6：格式一致性
+
+
 ### 维度 2：内部一致性
 
 验证跨阶段的信息是否一致——这是传统质检清单最常遗漏的维度。
@@ -54,6 +59,14 @@ description: >-
 **方法**：从 Phase 01 开始，沿产出物流往下看，每到一个文件确认"这个文件里的信息是否还认同上一个文件里的同一个字段"。
 
 > 详细检查项见 `references/review-methodology.md` → 内部一致性
+
+**变更冲突检查**：当提议新增模块/环节/主题时，检查是否与已有内容冲突。
+详见 `references/review-methodology.md` → 维度 8：变更冲突检查
+
+
+**Phase 03 三角对齐**：检查大纲 ⇄ 学员手册 ⇄ 讲师手册三个文件对每个课时的描述是否一致。
+详见 `references/review-methodology.md` → 维度 7：Phase 03 全域三角对齐（五文件互锁）
+
 
 ### 维度 3：内容深度
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Scaffold"
+  short_description: "项目文档治理结构初始化"
+  default_prompt: "Use $project-scaffold to scaffold a new project's documentation governance structure: AGENTS.md routing layer, brand specs, per-app design docs, and Superpowers phase directories. Supports --platform (trae/codex/cursor) and --dry-run."
