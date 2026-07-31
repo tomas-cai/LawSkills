@@ -1,0 +1,50 @@
+# vue-django Blueprint v1.0.0
+# Vue 前端 + Django 后端 + PostgreSQL
+
+id: vue-django
+name: Vue + Django
+version: 1.0.0
+description: "Vue 前端 + Django 后端 + PostgreSQL，适合快速开发内容管理和企业级应用"
+author: "AI Bootstrap"
+tags: [vue, django, python, javascript, web, cms]
+
+stack:
+  frontend:
+    framework: vue
+    version: "3.x"
+    language: typescript
+    build_tool: vite
+    ui_library: naive-ui
+    meta_framework: nuxt
+    state_management: pinia
+    testing: vitest
+
+  backend:
+    framework: django
+    version: "5.1.x"
+    language: python
+    orm: django-orm
+    api_style: rest + graphql
+    admin: django-admin
+    testing: pytest + django-test
+
+  database:
+    primary: postgres
+    version: "16"
+    cache: redis
+
+  auth:
+    provider: django-allauth
+    strategy: session + jwt
+
+  deployment:
+    type: docker
+    ci: github-actions
+    platform: "vercel (frontend) + railway / fly.io (backend)"
+
+  package_manager: pnpm + pip
+  monorepo: none
+
+architecture:
+  style: layered
+  pattern: modular-monolith

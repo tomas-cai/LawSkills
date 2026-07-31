@@ -1,0 +1,47 @@
+# next-fullstack Blueprint v1.0.0
+# Next.js 全栈应用 + NestJS 后端 + PostgreSQL
+
+id: next-fullstack
+name: Next.js Fullstack
+version: 1.0.0
+description: "Next.js 全栈应用，配套 NestJS 后端和 PostgreSQL 数据库"
+author: "AI Bootstrap"
+tags: [nextjs, fullstack, web, ddd, typescript]
+
+stack:
+  frontend:
+    framework: next
+    version: "15.x"
+    language: typescript
+    ui_library: shadcn
+    state_management: zustand
+    testing: vitest + playwright
+
+  backend:
+    framework: nest
+    version: "11.x"
+    language: typescript
+    orm: prisma
+    api_style: rest
+    testing: vitest + supertest
+
+  database:
+    primary: postgres
+    version: "17"
+    cache: redis
+
+  auth:
+    provider: authjs
+    strategy: jwt + session
+
+  deployment:
+    type: docker
+    ci: github-actions
+    platform: "vercel (frontend) + railway (backend)"
+
+  package_manager: pnpm
+  monorepo: turbo
+
+architecture:
+  style: ddd
+  pattern: modular-monolith

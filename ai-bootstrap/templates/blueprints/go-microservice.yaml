@@ -1,0 +1,48 @@
+# go-microservice Blueprint v1.0.0
+# Go 微服务 + Gin + PostgreSQL + gRPC
+
+id: go-microservice
+name: Go Microservice
+version: 1.0.0
+description: "Go 微服务，使用 Gin 框架 + PostgreSQL + gRPC，适合高性能 API 服务"
+author: "AI Bootstrap"
+tags: [go, gin, microservice, grpc, docker, api]
+
+stack:
+  frontend:
+    framework: none
+    language: none
+
+  backend:
+    framework: gin
+    version: "1.10.x"
+    language: go
+    orm: gorm
+    api_style: rest + grpc
+    message_queue: nats
+    testing: go-test + testify
+
+  database:
+    primary: postgres
+    version: "16"
+    cache: redis
+
+  auth:
+    provider: jwt
+    strategy: token + api-key
+
+  deployment:
+    type: docker + kubernetes
+    ci: github-actions
+    platform: "docker (dev) + k8s (prod)"
+    observability: "prometheus + open-telemetry + grafana"
+
+  package_manager: go-modules
+  monorepo: none
+  build_tool: makefile
+
+architecture:
+  style: clean
+  pattern: microservices
+  service_mesh: optional
+  api_gateway: kong

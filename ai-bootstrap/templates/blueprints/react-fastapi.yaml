@@ -1,0 +1,45 @@
+# react-fastapi Blueprint v1.0.0
+# React 前端 + FastAPI 后端
+
+id: react-fastapi
+name: React + FastAPI
+version: 1.0.0
+description: "React 前端 (Vite) + FastAPI 后端 + PostgreSQL"
+author: "AI Bootstrap"
+tags: [react, fastapi, python, typescript, web]
+
+stack:
+  frontend:
+    framework: react
+    version: "19.x"
+    language: typescript
+    build_tool: vite
+    ui_library: shadcn
+    testing: vitest
+
+  backend:
+    framework: fastapi
+    version: "0.115.x"
+    language: python
+    orm: sqlalchemy
+    api_style: rest
+    testing: pytest
+
+  database:
+    primary: postgres
+    version: "17"
+
+  auth:
+    provider: jwt
+    strategy: token
+
+  deployment:
+    type: docker
+    ci: github-actions
+
+  package_manager: pnpm + pip
+  monorepo: none
+
+architecture:
+  style: layered
+  pattern: modular-monolith

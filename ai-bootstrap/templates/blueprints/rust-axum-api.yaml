@@ -1,0 +1,44 @@
+# rust-axum-api Blueprint v1.0.0
+# Rust Axum + SQLite + async 高性能 API
+
+id: rust-axum-api
+name: Rust Axum API
+version: 1.0.0
+description: "高性能 Rust API 服务，使用 Axum 框架 + SQLite，适合边缘计算和嵌入场景"
+author: "AI Bootstrap"
+tags: [rust, axum, sqlite, api, high-performance]
+
+stack:
+  frontend:
+    framework: none
+    language: none
+
+  backend:
+    framework: axum
+    version: "0.8.x"
+    language: rust
+    orm: diesel + sqlx
+    api_style: rest
+    async_runtime: tokio
+    testing: cargo-test + rstest
+
+  database:
+    primary: sqlite
+    version: "3.x"
+    migration: diesel-cli
+
+  auth:
+    provider: jwt
+    strategy: token
+
+  deployment:
+    type: docker + binary
+    ci: github-actions
+    platform: "binary deploy / docker / serverless"
+
+  package_manager: cargo
+  monorepo: cargo-workspace
+
+architecture:
+  style: layered
+  pattern: modular-monolith

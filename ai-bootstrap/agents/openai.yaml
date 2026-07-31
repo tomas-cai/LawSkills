@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Bootstrap"
+  short_description: "AI Native Engineering Bootstrap System — 为项目注入 AI 治理体系"
+  default_prompt: "Use $ai-bootstrap to bootstrap a new project or inject AI governance into an existing project. Supports detection (detect.py), interactive selection (wizard.py), generation (generate.py), validation (validate.py), six Blueprint options, --dry-run preview, and --force for explicit overwrite."

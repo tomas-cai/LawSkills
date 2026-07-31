@@ -1,0 +1,54 @@
+# python-ml-service Blueprint v1.0.0
+# Python ML Service + FastAPI + Jupyter + GPU 支持
+
+id: python-ml-service
+name: Python ML Service
+version: 1.0.0
+description: "AI/ML 推理和训练服务，使用 FastAPI + PyTorch + Jupyter"
+author: "AI Bootstrap"
+tags: [python, fastapi, ml, ai, pytorch, jupyter, gpu]
+
+stack:
+  frontend:
+    framework: none
+    language: none
+
+  backend:
+    framework: fastapi
+    version: "0.115.x"
+    language: python
+    api_style: rest
+    async: true
+    background_tasks: celery + redis
+    testing: pytest + pytest-asyncio
+
+  ml:
+    framework: pytorch
+    version: "2.x"
+    training: pytorch-lightning
+    experiment_tracking: mlflow
+    feature_store: feast
+    model_registry: mlflow
+    notebook: jupyter-lab
+    gpu: cuda + tensorrt
+
+  database:
+    primary: postgres
+    version: "16"
+    vector: pgvector
+    cache: redis
+
+  deployment:
+    type: docker + k8s
+    ci: github-actions + dvc
+    platform: "kubernetes (with GPU nodes) / modal / replicate"
+    monitoring: "prometheus + grafana + wandb"
+
+  package_manager: poetry + conda
+  monorepo: none
+  build_tool: makefile
+  devcontainer: true
+
+architecture:
+  style: layered
+  pattern: modular-monolith
