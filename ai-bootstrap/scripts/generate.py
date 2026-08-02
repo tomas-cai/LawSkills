@@ -21,7 +21,12 @@ from pathlib import Path
 from typing import Optional
 
 from yaml_utils import dump_yaml, load_yaml
-from framework_gate import constraints_for_ui_library, render_constraints_markdown
+from framework_gate import (
+    constraints_for_ui_library,
+    official_references_for_ui_library,
+    render_constraints_markdown,
+    render_official_demo_checklist,
+)
 from layout import (
     ADR_DIR,
     ADR_INDEX_PATH,
@@ -55,7 +60,7 @@ STARTER_TEXT_EXTENSIONS = {
 }
 STARTER_TEXT_FILENAMES = {".env.example", ".gitignore"}
 
-BOOTSTRAP_VERSION = "1.11.0"
+BOOTSTRAP_VERSION = "1.12.0"
 
 # Agent platform configurations
 AGENT_PLATFORMS = {
@@ -363,6 +368,26 @@ def _framework_constraints_markdown(stack: dict) -> str:
     return render_constraints_markdown(constraints)
 
 
+def _official_demo_alignment(blueprint: dict) -> str:
+    """渲染「与官方 DEMO 对齐」验收清单（README.md 与 design-token-spec.md 共用）。"""
+    stack = blueprint.get("stack", {}) if isinstance(blueprint, dict) else {}
+    frontend = stack.get("frontend", {}) if isinstance(stack, dict) else {}
+    design = blueprint.get("design_system", {}) if isinstance(blueprint, dict) else {}
+    ui_library = frontend.get("ui_library", design.get("ui_library", "none"))
+    theme_entry = design.get("theme_entry")
+    starter = blueprint.get("starter", {}) if isinstance(blueprint, dict) else {}
+    starter_dirs = [
+        spec.get("dir") for spec in _starter_dirs_from_blueprint(starter)
+        if isinstance(spec, dict) and spec.get("dir")
+    ]
+    return render_official_demo_checklist(
+        ui_library,
+        official_paradigm=design.get("official_paradigm"),
+        theme_entry=theme_entry if isinstance(theme_entry, dict) else None,
+        starter_dirs=starter_dirs or None,
+    )
+
+
 def _design_token_spec(blueprint: dict, variables: dict) -> str:
     """Build the stack-aware design-token contract persisted with the project."""
     stack = blueprint.get("stack", {}) if isinstance(blueprint, dict) else {}
@@ -461,8 +486,11 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
         "再生成瘦 DEMO；`validate.py` 的 `ui-stack-conformance` 会拦截偏离官方范式的做法。",
         "",
         f"- **范式**: {paradigm}",
-        "",
     ])
+    for _ref in official_references_for_ui_library(ui_library):
+        lines.append(f"- **官方 DEMO / 模板**: {_ref.get('official_demo_url', '待登记')}")
+        lines.append(f"- **官方文档**: {_ref.get('official_docs_url', '待登记')}")
+    lines.append("")
 
     lines.extend([
         "## 3. 技术栈主题入口",
@@ -538,7 +566,11 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
         "- [ ] Light / dark（如支持）、hover、focus、disabled、loading、empty、error 状态已验证。",
         "- [ ] 640px 及以上断点和移动端触控目标可用。",
         "- [ ] 运行官方组件库主题检查，确认本文件的实现入口与安装版本一致。",
+        "",
+        "## 10. 与官方 DEMO 对齐清单",
+        "",
     ])
+    lines.extend(_official_demo_alignment(blueprint).splitlines())
     return "\n".join(lines)
 
 
@@ -726,6 +758,7 @@ def build_variables(args, blueprint: dict) -> dict:
         "ARCHITECTURE_BOUNDARIES": _architecture_boundaries(architecture_style),
         "ENGINEERING_PRACTICES": _engineering_practices(stack, primary_language),
         "FRAMEWORK_CONSTRAINTS": _framework_constraints_markdown(stack),
+        "OFFICIAL_DEMO_ALIGNMENT": _official_demo_alignment(blueprint),
 
         # Project state
         "IS_NEW_PROJECT": str(is_empty).lower(),

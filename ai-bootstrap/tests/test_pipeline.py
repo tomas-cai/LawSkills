@@ -1095,5 +1095,161 @@ body {
             self.assertEqual(shadcn_check["details"].get("starter"), "next-shadcn-web")
 
 
+
+    # ─── P1: 官方 DEMO 对齐清单 + 构建期冒烟（build-smoke） ─────────────────
+
+    def test_framework_gate_registers_official_demo_urls(self):
+        """每个 UI 栈注册表条目都必须登记官方 demo 与文档链接（对齐清单依赖）。"""
+        self.assertTrue(FRAMEWORK_CONSTRAINTS)
+        for item in FRAMEWORK_CONSTRAINTS:
+            with self.subTest(library=item.get("library")):
+                demo = item.get("official_demo_url", "")
+                docs = item.get("official_docs_url", "")
+                self.assertTrue(
+                    demo.startswith("http"),
+                    f"{item.get('library')} 缺少 official_demo_url: {demo!r}",
+                )
+                self.assertTrue(
+                    docs.startswith("http"),
+                    f"{item.get('library')} 缺少 official_docs_url: {docs!r}",
+                )
+
+    def test_official_demo_checklist_rendered_in_readme_and_token_spec(self):
+        """nuxt-ai-fullstack 生成：README / DESIGN / design-token-spec 都带官方 DEMO 对齐内容。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-official-demo-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--name", "MatchCV", "--agents", "codex,cursor",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            readme = (Path(project) / "README.md").read_text(encoding="utf-8")
+            self.assertIn("与官方 DEMO 对齐", readme)
+            self.assertIn("nuxt.com/templates", readme)
+            self.assertIn("ui.nuxt.com", readme)
+            self.assertIn("ui-stack-conformance", readme)
+            self.assertIn("starter 目录已生成", readme)
+
+            spec = (Path(project) / "docs" / "00-research" / "design-token-spec.md").read_text(encoding="utf-8")
+            self.assertIn("与官方 DEMO 对齐清单", spec)
+            self.assertIn("官方 DEMO / 模板", spec)
+            self.assertIn("nuxt.com/templates", spec)
+
+            design = (Path(project) / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+            self.assertIn("官方 DEMO / 模板", design)
+            self.assertIn("nuxt.com/templates", design)
+
+    def test_official_demo_alignment_covers_all_ui_stacks(self):
+        """6 个 UI 栈 Blueprint 生成的 README 都渲染对应官方 demo 链接。"""
+        cases = {
+            "nuxt-ai-fullstack": "nuxt.com/templates",
+            "uni-app-nitro": "vant-ui.github.io/vant",
+            "vue-element-plus-nitro": "element-plus.org",
+            "react-springboot": "ant.design",
+            "react-fastapi": "ui.shadcn.com",
+            "vue-django": "naiveui.com",
+            "next-fullstack": "ui.shadcn.com",
+        }
+        for blueprint_id, url_fragment in cases.items():
+            with self.subTest(blueprint=blueprint_id):
+                with tempfile.TemporaryDirectory(prefix=f"ai-bootstrap-demo-{blueprint_id}-") as project:
+                    result = self.run_script(
+                        "generate.py", "--dir", project, "--blueprint", blueprint_id,
+                        "--name", "Demo", "--agents", "codex",
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    readme = (Path(project) / "README.md").read_text(encoding="utf-8")
+                    self.assertIn("与官方 DEMO 对齐", readme)
+                    self.assertIn(url_fragment, readme)
+
+    def test_build_smoke_plan_resolves_workspace_targets(self):
+        """build-smoke --plan：nuxt 单仓根只 install，各 app 探测到构建脚本。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-buildsmoke-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--name", "MatchCV", "--agents", "codex,cursor",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            smoke = self.run_script("build_smoke.py", "--dir", project, "--plan", "--json")
+            self.assertEqual(smoke.returncode, 0, smoke.stderr)
+            report = json.loads(smoke.stdout)
+            self.assertEqual(report["package_manager"], "pnpm")
+            self.assertTrue(report["plan"])
+            by_dir = {t["dir"]: t for t in report["targets"]}
+
+            self.assertIn(".", by_dir)
+            root = by_dir["."]
+            self.assertTrue(root["is_workspace_root"])
+            self.assertIsNone(root["build_script"])
+            self.assertEqual(root["build"]["state"], "skip")
+
+            for app_dir in ("apps/app-web-hr", "apps/app-web-platform", "apps/app-web-server"):
+                self.assertIn(app_dir, by_dir, f"缺少 target {app_dir}")
+                self.assertEqual(by_dir[app_dir]["build_script"], "build")
+            self.assertEqual(by_dir["apps/app-web-hr"]["build"]["cmd"], "pnpm run build")
+
+    def test_build_smoke_plan_on_standalone_and_uni(self):
+        """build-smoke --plan：独立 frontend 目标 + uni-app build:h5 脚本探测。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-buildsmoke-react-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "react-fastapi",
+                "--name", "Demo", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            smoke = self.run_script("build_smoke.py", "--dir", project, "--plan", "--json")
+            report = json.loads(smoke.stdout)
+            targets = {t["dir"]: t for t in report["targets"]}
+            self.assertIn("frontend", targets)
+            self.assertEqual(targets["frontend"]["build_script"], "build")
+            self.assertEqual(targets["frontend"]["build"]["cmd"], "pnpm run build")
+
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-buildsmoke-uni-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "uni-app-nitro",
+                "--name", "Demo", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            smoke = self.run_script("build_smoke.py", "--dir", project, "--plan", "--json")
+            report = json.loads(smoke.stdout)
+            targets = {t["dir"]: t for t in report["targets"]}
+            self.assertIn("apps/mobile", targets)
+            self.assertEqual(targets["apps/mobile"]["build_script"], "build:h5")
+            self.assertEqual(targets["apps/mobile"]["build"]["cmd"], "pnpm run build:h5")
+            # uni-app H5 构建必需官方 index.html 入口（vite-plugin-uni 解析 entry module）
+            index_html = Path(project) / "apps" / "mobile" / "index.html"
+            self.assertTrue(index_html.exists(), "uni-app starter 缺少官方 index.html H5 入口")
+            self.assertIn("src/main.ts", index_html.read_text(encoding="utf-8"))
+
+    def test_build_smoke_script_detection_helpers(self):
+        """build-smoke 的脚本探测 / 包管理器探测 / manifest 解析单测。"""
+        from build_smoke import build_script_for, detect_package_manager, manifest_targets
+
+        self.assertEqual(build_script_for({"scripts": {"build": "vite build"}}), "build")
+        self.assertEqual(build_script_for({"scripts": {"build:h5": "uni build"}}), "build:h5")
+        self.assertEqual(build_script_for({"scripts": {"build:prod": "vite build"}}), "build:prod")
+        self.assertEqual(build_script_for({"scripts": {"dev": "vite"}}), None)
+        self.assertEqual(build_script_for({}), None)
+        self.assertEqual(build_script_for(None), None)
+
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-pm-") as tmp:
+            root = Path(tmp)
+            self.assertEqual(detect_package_manager(root), "pnpm")
+            (root / "package-lock.json").write_text("{}", encoding="utf-8")
+            self.assertEqual(detect_package_manager(root), "npm")
+            (root / "pnpm-lock.yaml").write_text("", encoding="utf-8")
+            self.assertEqual(detect_package_manager(root), "pnpm")
+            self.assertEqual(detect_package_manager(root, prefer="yarn"), "yarn")
+
+        manifest = {"manifest": {"starter": {"template_dirs": [
+            {"dir": "react-shadcn-web", "target": "frontend"},
+        ]}}}
+        self.assertEqual(
+            manifest_targets(manifest),
+            [{"starter": "react-shadcn-web", "target": "frontend"}],
+        )
+        self.assertEqual(manifest_targets(None), [])
+
+
 if __name__ == "__main__":
     unittest.main()

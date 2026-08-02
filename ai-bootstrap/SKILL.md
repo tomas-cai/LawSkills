@@ -1,6 +1,6 @@
 ---
 name: ai-bootstrap
-version: "1.11.0"
+version: "1.12.0"
 description: >
   AI Native Engineering Bootstrap System.
   为 AI 建立长期、统一、可治理的软件工程上下文。
@@ -59,6 +59,7 @@ description: >
   - **shadcn/ui（React / Next.js + Tailwind v4）**: 按 shadcn/ui v3 官方安装范式（`v3.shadcn.com/docs/installation/vite` / `.../next` + `shadcn init/add`）初始化：组件是**源码拷贝进项目**（`pnpm dlx shadcn@latest init` 生成 `components.json` + `globals.css` 主题变量 `--primary` / `--radius` + `src/lib/utils.ts` `cn()`；`pnpm dlx shadcn@latest add <component>` 拷进 `src/components/ui/`），不是 npm 依赖、不走 `babel-plugin-import` 或运行时按需插件；全局 CSS 以 `@import "tailwindcss"` 起步（Vite 用 `@tailwindcss/vite`、Next.js 用 `@tailwindcss/postcss`，配 `@/*` 路径别名；RSC 交互组件标 `'use client'`）；主题色只改 CSS 变量，页面用 `bg-primary` / `text-muted` 等语义类名，不散落 hex。（`react-fastapi` 内置 `react-shadcn-web` Vite starter（`frontend/`）；`next-fullstack` 内置 `next-shadcn-web` Next.js App Router starter（`apps/web/`）；均直接生成可运行的登录 → 工作台 → 岗位 CRUD 瘦 DEMO）
   - **Naive UI 2.x（Vue3 轻量/桌面）**: 按 Naive UI 官方快速上手与主题定制范式初始化：**不需要导入任何 CSS**（组件独立导出、tree-shaking 友好，禁止 `import 'naive-ui/dist/index.css'` 之类全量样式）；主题入口是 `<n-config-provider :theme-overrides>`（JS 对象 `GlobalThemeOverrides`；暗色用 `darkTheme`）+ `locale={zhCN}` / `date-locale={dateZhCN}`（来自 naive-ui）；按需可配 `unplugin-vue-components` + `NaiveUiResolver` + `unplugin-auto-import`；主题令牌集中在 `src/theme.ts` 导出 `themeOverrides` 对象，页面不散落 hex。（`vue-django` Blueprint 已内置 `vue-naive-web` starter：`frontend/` 直接生成可运行的登录 → 工作台 → 岗位 CRUD 瘦 DEMO）
 - **官方范式优先（Official First）**: 接入任何新前端 UI 库/组件库时，**先查官方 starter / quickstart / template / theming 文档**，提取官方安装与主题入口范式 → 生成瘦 DEMO → 由 `validate.py` 的 `ui-stack-conformance` 门禁拦截反官方做法；禁止凭记忆或旧版经验初始化。已覆盖：Nuxt UI v4、Vant 4、Element Plus 2.x、Ant Design v6、shadcn/ui v3、Naive UI 2.x。
+- **官方 DEMO 对齐清单（official-demo-checklist）**: 每个 UI 栈在 `framework_gate.py` 注册 `official_demo_url` / `official_docs_url`；生成项目的 README.md 与 `docs/00-research/design-token-spec.md` 自动附「与官方 DEMO 对齐」验收清单（官方 demo/starter 链接、官方安装范式、主题令牌入口、starter 目录、`ui-stack-conformance` 门禁），持续核对初始化是否偏离官方推荐做法。新 UI 栈入库必须先在注册表登记官方链接。
 - 升级到真实 API 的路径见 `references/basic-feature-baseline.md`。
 
 已在 `nuxt-ai-fullstack` Blueprint 中内置 `multi-app-monorepo`、`jwt + author`、`project-create-edit` 与 `demo-visual-baseline` 基线。
@@ -175,6 +176,7 @@ Detect ──▶ Analyze ──▶ Resolve ──▶ Generate ──▶ Verify �
 | `scripts/generate.py` | 生成治理文件 + 项目骨架 | `python3 <skill-dir>/scripts/generate.py --dir /path/to/project --blueprint <id>` |
 | `scripts/validate.py` | 自检验证 | `python3 <skill-dir>/scripts/validate.py --dir /path/to/project` |
 | `scripts/smoke.py` | 运行时冒烟检查（启动后验证各应用端口可访问） | `python3 <skill-dir>/scripts/smoke.py --dir /path/to/project` |
+| `scripts/build_smoke.py` | 构建期冒烟（真实 `pnpm install` + 构建，验证 starter「生成即能跑」；`--plan` 只打印计划） | `python3 <skill-dir>/scripts/build_smoke.py --dir /path/to/project` |
 
 设计令牌规范由 `generate.py` 持久化为 `docs/00-research/design-token-spec.md`；通用规则和技术栈映射见 `references/design-token-guide.md`。
 

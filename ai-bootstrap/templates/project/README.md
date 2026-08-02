@@ -18,6 +18,10 @@
 
 设计令牌与主题入口见 [`docs/00-research/design-token-spec.md`](docs/00-research/design-token-spec.md)。
 
+## 与官方 DEMO 对齐
+
+{{OFFICIAL_DEMO_ALIGNMENT}}
+
 ## 快速开始
 
 ```bash

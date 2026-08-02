@@ -1984,7 +1984,7 @@ def validate(project_dir: str, fix: bool = False, quiet: bool = False) -> Valida
 
 # ─── CLI Entry ────────────────────────────────────────────────────────────────
 
-BOOTSTRAP_VERSION = "1.11.0"
+BOOTSTRAP_VERSION = "1.12.0"
 
 
 def main():
