@@ -88,6 +88,12 @@ dna:
 | 部署 | {{DEPLOYMENT_PLATFORM}} | {{DEPLOYMENT_TYPE}} |
 | 包管理器 | {{PACKAGE_MANAGER}} | — |
 
+## 环境与工具链基线
+
+> AI Agent 安装/切换本地环境时参考；运行时版本以官方支持基线为准，不擅自升级。
+
+{{ENVIRONMENT_BASELINE}}
+
 ### 项目目录契约
 
 目录职责表与约定以 [`docs/DESIGN.md`](DESIGN.md)「项目目录契约」为唯一来源。

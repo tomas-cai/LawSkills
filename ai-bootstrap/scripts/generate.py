@@ -57,10 +57,11 @@ STARTER_TEMPLATES_DIR = TEMPLATES_DIR / "starter"
 STARTER_TEXT_EXTENSIONS = {
     ".vue", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".md",
     ".markdown", ".yaml", ".yml", ".css", ".scss", ".html", ".txt", ".toml",
+    ".java", ".xml", ".properties",
 }
 STARTER_TEXT_FILENAMES = {".env.example", ".gitignore"}
 
-BOOTSTRAP_VERSION = "1.12.0"
+BOOTSTRAP_VERSION = "1.13.1"
 
 # Agent platform configurations
 AGENT_PLATFORMS = {
@@ -358,6 +359,75 @@ def _engineering_practices(stack: dict, primary_language: str) -> str:
         practices.append("- 记录模型、数据、实验与部署版本，确保推理结果可追溯。")
     return "\n".join(practices)
 
+
+
+def _environment_baseline(blueprint: dict) -> str:
+    """Render the environment/toolchain baseline that guides AI agents when
+    installing or switching local runtimes.
+
+    Spring Boot 3.x is pinned to JDK 17 + Maven 3.9+ (most stable combo): the
+    generated governance docs must tell agents which JDK/Maven to install before
+    they touch the backend, and keep ``pom.xml`` at ``java.version=17``.
+    """
+    stack = blueprint.get("stack", {}) if isinstance(blueprint, dict) else {}
+    backend = stack.get("backend", {}) if isinstance(stack, dict) else {}
+    frontend = stack.get("frontend", {}) if isinstance(stack, dict) else {}
+    database = stack.get("database", {}) if isinstance(stack, dict) else {}
+    deployment = stack.get("deployment", {}) if isinstance(stack, dict) else {}
+
+    pm = stack.get("package_manager", "pnpm")
+    if isinstance(pm, dict):
+        pm = pm.get("name", "pnpm")
+    pm = str(pm)
+    # "pnpm + maven" 这类组合串：前端用第一部分，后端（maven）由下方后端基线覆盖
+    frontend_pm = pm.split("+")[0].strip() if "+" in pm else pm
+
+    backend_framework = str(backend.get("framework", "") or "").lower()
+    frontend_framework = str(frontend.get("framework", "") or "").lower()
+    frontend_label = f"{frontend.get('framework', '前端')} {frontend.get('version', '')}".strip()
+    primary_db = database.get("primary", "")
+    if isinstance(primary_db, dict):
+        primary_db = primary_db.get("name") or primary_db.get("type") or ""
+
+    lines = []
+    if frontend_framework and frontend_framework != "none":
+        lines.append(
+            f"- **前端运行环境**：Node.js 20+（LTS）与 `{frontend_pm}`（{frontend_label}）。"
+            f"依赖安装统一用 `{frontend_pm} install`（见 README「快速开始」），不要混用 npm/yarn/pnpm。"
+        )
+    if backend_framework == "spring-boot":
+        lines.append(
+            "- **后端 Java 运行时：JDK 17**（Spring Boot 3.x 官方支持基线，最稳版本）。"
+            "AI Agent 安装/切换环境时以 JDK 17 为准：`pom.xml` 固定 `<java.version>17</java.version>`，"
+            "不要用 JDK 21+ 或更低版本编译；Docker 镜像同样基于 Temurin 17。"
+        )
+        lines.append(
+            "- **后端构建工具：Maven 3.9+（必须支持）**。统一通过 `mvn -f backend/pom.xml` 执行 "
+            "`clean package` / `test` / `spring-boot:run`；IDE（IDEA / VS Code）需配置 Maven 与 JDK 17，"
+            "避免误用系统默认 JDK。"
+        )
+    elif backend_framework and backend_framework != "none":
+        lines.append(
+            f"- **后端运行环境**：按 {backend.get('framework')} 官方支持基线安装"
+            f"（{backend.get('language', '')} 运行时，版本与命令以 README「快速开始」和官方文档为准）。"
+        )
+    if primary_db:
+        lines.append(
+            f"- **数据库**：{primary_db}（本地开发可用 Docker 或内存库；生产连接串只通过环境变量注入，不写入仓库）。"
+        )
+    if deployment.get("type"):
+        platform = deployment.get("platform") or deployment.get("type")
+        lines.append(f"- **部署**：{platform}（Docker 镜像基于官方运行时基线构建，与本地开发版本一致）。")
+
+    env_block = blueprint.get("environment", {}) if isinstance(blueprint, dict) else {}
+    notes = env_block.get("notes", []) if isinstance(env_block, dict) else []
+    for note in notes:
+        if isinstance(note, str) and note.strip():
+            lines.append(f"- {note.strip()}")
+
+    if not lines:
+        return "> 当前 Blueprint 未声明额外运行环境要求，按官方文档安装即可。"
+    return "\n".join(lines)
 
 
 def _framework_constraints_markdown(stack: dict) -> str:
@@ -708,6 +778,41 @@ def build_variables(args, blueprint: dict) -> dict:
             file=sys.stderr,
         )
 
+    # ── 字体策略：默认跳过 Google 字体包（vfonts / @fontsource-variable/inter）────
+    # 国内网络拉取慢/易失败，初始化默认不下载；--fonts 显式开启，AI_BOOTSTRAP_FONTS=1 等效。
+    fonts_enabled = getattr(args, "fonts", None)
+    if fonts_enabled is None:
+        env_fonts = os.environ.get("AI_BOOTSTRAP_FONTS", "").strip().lower()
+        fonts_enabled = env_fonts in {"1", "true", "yes", "on"}
+    fonts_enabled = bool(fonts_enabled)
+
+    if fonts_enabled:
+        naive_font_imports = (
+            "// Naive UI 官方推荐字体（vfonts：Lato / Inter，Google 字体打包为 npm 自托管）\n"
+            "import 'vfonts/Lato.css'\n"
+            "import 'vfonts/Inter.css'"
+        )
+        naive_font_dep = '    "vfonts": "^0.0.3",\n'
+        nuxt_font_plugin = "import '@fontsource-variable/inter'\n"
+        nuxt_font_css_import = "@import '@fontsource-variable/inter';\n"
+        nuxt_font_sans_prefix = "'Inter Variable', "
+        nuxt_font_dep = '    "@fontsource-variable/inter": "^5.2.0",\n'
+    else:
+        naive_font_imports = (
+            "// 字体默认跳过：vfonts（Lato / Inter = Google 字体打包）国内下载慢/易失败。\n"
+            "// 如需官方字体：重新运行 generate.py 时加 --fonts，或手动 pnpm add vfonts 后再引入。"
+        )
+        naive_font_dep = ""
+        nuxt_font_plugin = (
+            "// 字体默认跳过：@fontsource-variable/inter（Google 字体打包）国内下载慢/易失败。\n"
+            "// 如需官方 Inter 字体：重新运行 generate.py 时加 --fonts，或手动安装后再引入。"
+        )
+        nuxt_font_css_import = (
+            "/* @fontsource-variable/inter 默认跳过（国内下载慢/易失败）；需要时用 --fonts 重新生成 */\n"
+        )
+        nuxt_font_sans_prefix = ""
+        nuxt_font_dep = ""
+
     return {
         "PROJECT_ID": project_id,
         "PROJECT_NAME": args.name or project_dir.name,
@@ -774,6 +879,14 @@ def build_variables(args, blueprint: dict) -> dict:
         "ARCHITECTURE_BOUNDARIES": _architecture_boundaries(architecture_style),
         "ENGINEERING_PRACTICES": _engineering_practices(stack, primary_language),
         "FRAMEWORK_CONSTRAINTS": _framework_constraints_markdown(stack),
+        "ENVIRONMENT_BASELINE": _environment_baseline(blueprint),
+        "FONTS_ENABLED": "true" if fonts_enabled else "false",
+        "NAIVE_FONT_IMPORTS": naive_font_imports,
+        "NAIVE_FONT_DEP": naive_font_dep,
+        "NUXT_FONT_PLUGIN": nuxt_font_plugin,
+        "NUXT_FONT_CSS_IMPORT": nuxt_font_css_import,
+        "NUXT_FONT_SANS_PREFIX": nuxt_font_sans_prefix,
+        "NUXT_FONT_DEP": nuxt_font_dep,
         "OFFICIAL_DEMO_ALIGNMENT": _official_demo_alignment(blueprint),
 
         # Project state
@@ -1287,6 +1400,21 @@ Examples:
         dest="starter",
         action="store_false",
         help="Disable basic feature starter generation",
+    )
+    parser.add_argument(
+        "--fonts",
+        dest="fonts",
+        action="store_true",
+        default=None,
+        help="Include UI font packages (vfonts / @fontsource-variable/inter) in the starter; "
+        "default is to skip them (China-friendly, avoids slow Google-font downloads). "
+        "AI_BOOTSTRAP_FONTS=1 is equivalent.",
+    )
+    parser.add_argument(
+        "--no-fonts",
+        dest="fonts",
+        action="store_false",
+        help="Explicitly skip UI font packages (default behavior)",
     )
     args = parser.parse_args()
 

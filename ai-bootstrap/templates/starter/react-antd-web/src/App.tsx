@@ -4,7 +4,7 @@ import { Button, Layout, Menu, theme } from 'antd'
 import type { MenuProps } from 'antd'
 import {
   BarChartOutlined,
-  BriefcaseOutlined,
+  ProfileOutlined,
   LogoutOutlined,
   UserOutlined,
 } from '@ant-design/icons'
@@ -19,7 +19,7 @@ type ViewKey = 'dashboard' | 'jobs' | 'login'
 
 const menuItems: MenuProps['items'] = [
   { key: 'dashboard', icon: <BarChartOutlined />, label: '工作台' },
-  { key: 'jobs', icon: <BriefcaseOutlined />, label: '岗位管理' },
+  { key: 'jobs', icon: <ProfileOutlined />, label: '岗位管理' },
 ]
 
 export default function App() {

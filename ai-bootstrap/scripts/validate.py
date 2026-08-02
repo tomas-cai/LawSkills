@@ -870,8 +870,13 @@ def check_demo_visual_baseline(project_path: Path, report: ValidationReport) -> 
         }
         # 字体证据：接受官方默认的 plugins/fonts.ts，也接受把 fontsource @import
         # 内联进 main.css 的合法优化（见 MEMORY 决策：避免为了过检查而复制 fonts.ts）。
+        # 注意：字体默认跳过时模板只写说明注释（--fonts 可开启），注释不算字体证据。
         if (app_src / "plugins" / "fonts.ts").exists():
-            has["fonts_loaded"] = True
+            font_plugin_text = (app_src / "plugins" / "fonts.ts").read_text(
+                encoding="utf-8", errors="replace"
+            )
+            if "fontsource" in font_plugin_text and not font_plugin_text.lstrip().startswith("//"):
+                has["fonts_loaded"] = True
         for css in (
             app_src / "assets" / "css" / "main.css",
             app / "assets" / "css" / "main.css",
@@ -880,8 +885,11 @@ def check_demo_visual_baseline(project_path: Path, report: ValidationReport) -> 
             if not css.exists():
                 continue
             text = css.read_text(encoding="utf-8", errors="replace")
-            if "@import" in text and "fontsource" in text:
-                has["fonts_loaded"] = True
+            for line in text.splitlines():
+                stripped = line.strip()
+                if stripped.startswith("@import") and "fontsource" in stripped:
+                    has["fonts_loaded"] = True
+                    break
             # 识别语义令牌：既接受 --mc-* / var(-- 老范式，也接受 design-token-spec 的
             # @theme static { --color-*: ... } 新范式（Nuxt UI v4 / Tailwind v4 官方写法）
             if (
@@ -893,8 +901,12 @@ def check_demo_visual_baseline(project_path: Path, report: ValidationReport) -> 
                 has["css_tokens"] = True
                 break
 
-        core_keys = ("theme_entry", "fonts_loaded", "css_tokens", "layouts", "empty_state")
+        # 字体为可选基线（生成器默认跳过 Google 字体包，见 generate.py --fonts）：
+        # 只记录证据，不计为缺失；主题/令牌/布局/空态/种子仍为必填。
+        core_keys = ("theme_entry", "css_tokens", "layouts", "empty_state")
         missing = [k for k in core_keys if not has[k]]
+        if not has["fonts_loaded"]:
+            has["fonts_note"] = "fonts skipped by default (opt-in: generate.py --fonts)"
 
         composables_dir = app_src / "composables"
         has_composables = bool(composables_dir.is_dir() and list(composables_dir.glob("*.ts")))
@@ -1991,7 +2003,7 @@ def validate(project_dir: str, fix: bool = False, quiet: bool = False) -> Valida
 
 # ─── CLI Entry ────────────────────────────────────────────────────────────────
 
-BOOTSTRAP_VERSION = "1.12.0"
+BOOTSTRAP_VERSION = "1.13.1"
 
 
 def main():

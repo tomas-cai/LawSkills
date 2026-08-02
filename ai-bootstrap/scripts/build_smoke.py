@@ -82,12 +82,34 @@ def _iter_pkg_dirs(root: Path, max_depth: int = 3):
                 stack.append((child, depth + 1))
 
 
+def _iter_maven_dirs(root: Path, max_depth: int = 3):
+    """遍历目录树，产出包含 pom.xml 的相对目录（用于 Maven 构建目标）。"""
+    stack = [(root, 0)]
+    while stack:
+        current, depth = stack.pop()
+        if depth >= max_depth:
+            continue
+        try:
+            children = sorted(current.iterdir(), key=lambda p: p.name)
+        except OSError:
+            continue
+        for child in children:
+            if not child.is_dir() or child.name in SKIP_DIRS:
+                continue
+            if (child / "pom.xml").exists():
+                yield child.relative_to(root).as_posix()
+            else:
+                stack.append((child, depth + 1))
+
+
 def scan_fallback(project_dir: Path, max_depth: int = 3) -> list[dict]:
-    """无 manifest 时扫描项目内 package.json 目录作为构建目标。"""
+    """无 manifest 时扫描项目内 package.json / pom.xml 目录作为构建目标。"""
     out = []
     if (project_dir / "package.json").exists():
         out.append({"starter": "root", "target": ""})
     for rel in sorted(_iter_pkg_dirs(project_dir, max_depth=max_depth)):
+        out.append({"starter": rel, "target": rel})
+    for rel in sorted(_iter_maven_dirs(project_dir, max_depth=max_depth)):
         out.append({"starter": rel, "target": rel})
     return out
 
@@ -141,19 +163,33 @@ def resolve_targets(project_dir: Path, manifest: dict | None) -> list[dict]:
         is_root = rel in ("", ".")
         path = project_dir if is_root else (project_dir / rel).resolve()
         pkg_path = path / "package.json"
-        if not pkg_path.exists():
-            continue
-        pkg = _read_pkg(pkg_path)
-        build_script = None if (is_root and is_workspace) else build_script_for(pkg)
-        targets.append({
-            "starter": spec.get("starter") or ("root" if is_root else rel),
-            "rel": "." if is_root else rel,
-            "path": str(path),
-            "is_root": is_root,
-            "is_workspace_root": bool(is_root and is_workspace),
-            "name": pkg.get("name", ""),
-            "build_script": build_script,
-        })
+        pom_path = path / "pom.xml"
+        if pkg_path.exists():
+            pkg = _read_pkg(pkg_path)
+            build_script = None if (is_root and is_workspace) else build_script_for(pkg)
+            targets.append({
+                "kind": "node",
+                "starter": spec.get("starter") or ("root" if is_root else rel),
+                "rel": "." if is_root else rel,
+                "path": str(path),
+                "is_root": is_root,
+                "is_workspace_root": bool(is_root and is_workspace),
+                "name": pkg.get("name", ""),
+                "build_script": build_script,
+            })
+        elif pom_path.exists():
+            # Maven 目标：install 跳过（package 阶段自带依赖解析），build 用 mvn package
+            targets.append({
+                "kind": "maven",
+                "starter": spec.get("starter") or ("root" if is_root else rel),
+                "rel": "." if is_root else rel,
+                "path": str(path),
+                "is_root": is_root,
+                "is_workspace_root": False,
+                "name": f"maven:{pom_path.parent.name}",
+                "build_script": "mvn package",
+                "build_cmd": ["mvn", "-q", "-DskipTests", "package"],
+            })
     return targets
 
 
@@ -238,10 +274,13 @@ Examples:
     for target in targets:
         cwd = Path(target["path"])
         install = None
-        if not args.skip_install:
+        is_maven = target.get("kind") == "maven"
+        if not args.skip_install and not is_maven:
             install = _run_cmd([pm, "install", *install_args], cwd, args.timeout, args.plan)
         build = None
-        if target["build_script"]:
+        if is_maven:
+            build = _run_cmd(target["build_cmd"], cwd, args.timeout, args.plan)
+        elif target["build_script"]:
             build = _run_cmd([pm, "run", target["build_script"]], cwd, args.timeout, args.plan)
         else:
             build = {
@@ -273,8 +312,10 @@ Examples:
             "failures": failures,
         }, indent=2, ensure_ascii=False))
     else:
+        has_maven = any(t.get("kind") == "maven" for t in targets)
+        pm_label = f"{pm} + maven" if has_maven else pm
         print(f"\n  AI Bootstrap — Starter Build Smoke Checker ({'PLAN' if args.plan else 'REAL'})")
-        print(f"  Package manager: {pm}   Targets: {len(results)}")
+        print(f"  Package manager: {pm_label}   Targets: {len(results)}")
         print(f"  {'Target':<26} {'Install':<10} {'Build':<10} {'Build script':<16} Time(s)")
         print(f"  {'-' * 90}")
         for r in results:

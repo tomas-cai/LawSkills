@@ -1,6 +1,6 @@
 ---
 name: ai-bootstrap
-version: "1.12.0"
+version: "1.13.1"
 description: >
   AI Native Engineering Bootstrap System.
   为 AI 建立长期、统一、可治理的软件工程上下文。
@@ -59,6 +59,8 @@ description: >
   - **shadcn/ui（React / Next.js + Tailwind v4）**: 按 shadcn/ui v3 官方安装范式（`v3.shadcn.com/docs/installation/vite` / `.../next` + `shadcn init/add`）初始化：组件是**源码拷贝进项目**（`pnpm dlx shadcn@latest init` 生成 `components.json` + `globals.css` 主题变量 `--primary` / `--radius` + `src/lib/utils.ts` `cn()`；`pnpm dlx shadcn@latest add <component>` 拷进 `src/components/ui/`），不是 npm 依赖、不走 `babel-plugin-import` 或运行时按需插件；全局 CSS 以 `@import "tailwindcss"` 起步（Vite 用 `@tailwindcss/vite`、Next.js 用 `@tailwindcss/postcss`，配 `@/*` 路径别名；RSC 交互组件标 `'use client'`）；主题色只改 CSS 变量，页面用 `bg-primary` / `text-muted` 等语义类名，不散落 hex。（`react-fastapi` 内置 `react-shadcn-web` Vite starter（`frontend/`）；`next-fullstack` 内置 `next-shadcn-web` Next.js App Router starter（`apps/web/`）；均直接生成可运行的登录 → 工作台 → 岗位 CRUD 瘦 DEMO）
   - **Naive UI 2.x（Vue3 轻量/桌面）**: 按 Naive UI 官方快速上手与主题定制范式初始化：**不需要导入任何 CSS**（组件独立导出、tree-shaking 友好，禁止 `import 'naive-ui/dist/index.css'` 之类全量样式）；主题入口是 `<n-config-provider :theme-overrides>`（JS 对象 `GlobalThemeOverrides`；暗色用 `darkTheme`）+ `locale={zhCN}` / `date-locale={dateZhCN}`（来自 naive-ui）；按需可配 `unplugin-vue-components` + `NaiveUiResolver` + `unplugin-auto-import`；主题令牌集中在 `src/theme.ts` 导出 `themeOverrides` 对象，页面不散落 hex。（`vue-django` Blueprint 已内置 `vue-naive-web` starter：`frontend/` 直接生成可运行的登录 → 工作台 → 岗位 CRUD 瘦 DEMO）
 - **官方范式优先（Official First）**: 接入任何新前端 UI 库/组件库时，**先查官方 starter / quickstart / template / theming 文档**，提取官方安装与主题入口范式 → 生成瘦 DEMO → 由 `validate.py` 的 `ui-stack-conformance` 门禁拦截反官方做法；禁止凭记忆或旧版经验初始化。已覆盖：Nuxt UI v4、Vant 4、Element Plus 2.x、Ant Design v6、shadcn/ui v3、Naive UI 2.x。
+- **Java/Maven 后端 starter（spring-boot-server-standalone）**: react-springboot 补齐缺失的 Spring Boot 后端工程（此前只生成前端），并新增 `vue-springboot` Blueprint（Vue3 + Element Plus + Spring Boot，国内企业级主流组合）。后端按 Spring Initializr 官方范式生成（`spring-boot-starter-parent` + `src/main/java` 官方目录 + `spring-boot-maven-plugin`），默认 H2 内存库开箱即跑、生产切换 PostgreSQL；`scripts/build_smoke.py` 支持 Maven 目标（`mvn -q -DskipTests package`），真实构建验证「生成即能跑」。**环境基线同时写入生成的 AGENTS.md / PROJECT_PROFILE.md / DESIGN.md / README：Spring Boot 3.x 用 JDK 17 最稳 + 必须支持 Maven 3.9+（`mvn -f backend/pom.xml`），指导 AI Agent 安装/切换环境时参考。**
+- **环境与工具链基线（environment-baseline）**: `generate.py` 根据 Blueprint 栈把「环境与工具链基线」写入 AGENTS.md（置顶规则）、PROJECT_PROFILE.md、DESIGN.md 与 README——Spring Boot 3.x 固定 **JDK 17（最稳）+ Maven 3.9+**（pom.xml `java.version=17`，`mvn -f backend/pom.xml` 统一操作）；前端固定 Node.js 20+ LTS + pnpm。所有 Agent 在安装/切换环境、执行构建命令前必须核对（AGENTS.md 顶部）。
 - **官方 DEMO 对齐清单（official-demo-checklist）**: 每个 UI 栈在 `framework_gate.py` 注册 `official_demo_url` / `official_docs_url`；生成项目的 README.md 与 `docs/00-research/design-token-spec.md` 自动附「与官方 DEMO 对齐」验收清单（官方 demo/starter 链接、官方安装范式、主题令牌入口、starter 目录、`ui-stack-conformance` 门禁），持续核对初始化是否偏离官方推荐做法。新 UI 栈入库必须先在注册表登记官方链接。
 - 升级到真实 API 的路径见 `references/basic-feature-baseline.md`。
 
@@ -225,8 +227,8 @@ Detect ──▶ Analyze ──▶ Resolve ──▶ Generate ──▶ Verify �
 | `templates/project/.gitignore` | Git 忽略规则 | 全新项目 |
 | `templates/starter/nuxt-basic-auth/` | 单前端基础功能基线（mock-first JWT/author 鉴权 + 项目新建/编辑） | 全新 Nuxt 单应用 |
 | `templates/starter/nuxt-monorepo-root/` | 多应用单仓根（pnpm workspace + Turborepo + tsconfig.base） | nuxt-ai-fullstack 根 |
-| `templates/starter/nuxt-app-hr/` | HR 前台 DEMO 视觉基线（主题/字体/布局/组件/种子岗位） | nuxt-ai-fullstack 的 app-web-hr |
-| `templates/starter/nuxt-app-platform/` | 运营后台 DEMO 视觉基线（侧边栏 + 指标卡 + 动态列表） | nuxt-ai-fullstack 的 app-web-platform |
+| `templates/starter/nuxt-app-hr/` | HR 前台 DEMO 视觉基线（主题/布局/组件/种子岗位；字体可选，默认跳过） | nuxt-ai-fullstack 的 app-web-hr |
+| `templates/starter/nuxt-app-platform/` | 运营后台 DEMO 视觉基线（侧边栏 + 指标卡 + 动态列表；字体可选，默认跳过） | nuxt-ai-fullstack 的 app-web-platform |
 | `templates/starter/nitro-server-standalone/` | Nitro standalone API（根级 routes/、健康检查、品牌欢迎页） | nuxt-ai-fullstack 的 app-web-server |
 | `templates/blueprints/` | Blueprint 定义文件 | 按需加载 |
 | `templates/prompt/bootstrap-complete.md` | Bootstrap 完成提示 | 流程完成 |
@@ -354,7 +356,8 @@ project/
 - 新项目按官方约定生成骨架；现有项目不强制重构，`detect.py` 记录实际结构，AI 按现状工作。
 - 多应用项目每个 app 独立声明 `layout`，不共用一套源码结构。
 - Nitro standalone（≥2.13）路由放应用根级 `routes/` 与 `routes/api/`；`server/` 不再被自动扫描，存量项目按此迁移。
-- 生成器自带“DEMO 视觉基线”概念：主题入口（app.config.ts）、全局令牌 CSS、字体插件、布局与核心组件（AppLogo/AppHeader/AppSidebar/StatCard/EmptyState）随 starter 一起落地，避免页面停留在“无样式的功能基线”。
+- 生成器自带“DEMO 视觉基线”概念：主题入口（app.config.ts）、全局令牌 CSS、布局与核心组件（AppLogo/AppHeader/AppSidebar/StatCard/EmptyState）随 starter 一起落地，避免页面停留在“无样式的功能基线”。
+- **UI 字体默认跳过（国内网络友好）**: 使用 Google 字体打包（`vfonts` Lato/Inter、`@fontsource-variable/inter`）的 starter（naive-ui / Nuxt UI）**初始化默认不引入字体包**——依赖不装、import 不写，走系统字体栈（`-apple-system / PingFang SC / Microsoft YaHei`），避免国内下载慢或安装失败导致前端报错；需要官方字体时 `generate.py --fonts`（或 `AI_BOOTSTRAP_FONTS=1`）显式开启。antd / Element Plus / shadcn / vant starter 本就不依赖 Google 字体。
 
 ## 参考文件索引
 
@@ -513,7 +516,7 @@ Bootstrap 完成后，确保以下内容正确：
 - [ ] .ai-bootstrap/bootstrap-manifest.yaml 已生成
 - [ ] 全新项目含可运行骨架时，已执行类型检查、构建和冒烟测试，能给出可访问 URL
 - [ ] Nitro standalone 应用使用根级 `routes/`/`routes/api/`（validate.py `nitro-route-layout`）
-- [ ] Nuxt 应用具备 DEMO 视觉基线：主题入口、字体插件、令牌 CSS、布局、EmptyState（validate.py `demo-visual-baseline`）
+- [ ] Nuxt 应用具备 DEMO 视觉基线：主题入口、令牌 CSS、布局、EmptyState（validate.py `demo-visual-baseline`；字体为可选基线，默认跳过）
 - [ ] 有构建产物时包含 Nitro 路由 chunk / Nuxt output（validate.py `build-artifacts`）
 - [ ] 冒烟测试通过：每个应用端口返回 2xx/3xx（smoke.py）
 - [ ] 完成总结给出每个应用的访问 URL 与冒烟结果

@@ -5,10 +5,9 @@
  */
 @import "tailwindcss" theme(static);
 @import "@nuxt/ui";
-@import '@fontsource-variable/inter';
-
+{{NUXT_FONT_CSS_IMPORT}}
 @theme static {
-  --font-sans: 'Inter Variable', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: {{NUXT_FONT_SANS_PREFIX}}'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, sans-serif;
 
   /* brand（主色，indigo 系） */
   --color-brand-50: #eef2ff;

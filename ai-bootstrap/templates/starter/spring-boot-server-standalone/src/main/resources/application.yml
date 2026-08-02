@@ -1,0 +1,31 @@
+# {{PROJECT_NAME}} 后端配置（thin demo）
+# 生产环境请用环境变量覆盖 datasource 与 jwt.secret，禁止把真实密钥提交进仓库。
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: {{PROJECT_SLUG}}-server
+  datasource:
+    # 开发默认：H2 内存库，开箱即跑；生产切换 PostgreSQL：
+    #   SPRING_DATASOURCE_URL=jdbc:postgresql://<host>:5432/<db>
+    #   SPRING_DATASOURCE_USERNAME=... SPRING_DATASOURCE_PASSWORD=...
+    url: jdbc:h2:mem:{{PROJECT_SLUG}};DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+app:
+  jwt:
+    # thin-demo 占位密钥：仅用于本地开发，生产必须通过环境变量注入
+    secret: "{{PROJECT_ID}}-thin-demo-secret-change-me"
+    expires-minutes: 60

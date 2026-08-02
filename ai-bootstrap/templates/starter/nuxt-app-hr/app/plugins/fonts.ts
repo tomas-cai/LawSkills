@@ -1,1 +1,1 @@
-import '@fontsource-variable/inter'
+{{NUXT_FONT_PLUGIN}}

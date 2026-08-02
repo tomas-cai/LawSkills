@@ -50,6 +50,14 @@ Agent 生成或修改的文件应使用标签标记：
 
 ---
 
+## 环境与工具链基线 (Environment & Toolchain Baseline)
+
+> 所有 Agent 在**安装/切换环境、执行构建命令前**，必须先核对本基线；不要擅自升级或降级运行时版本。
+
+{{ENVIRONMENT_BASELINE}}
+
+---
+
 ## 治理规则
 
 1. **不可变性**: docs/PROJECT_PROFILE.md 的 DNA 部分不可随意修改，变更必须经 ADR 审批

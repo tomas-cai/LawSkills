@@ -9,7 +9,7 @@ Wizard 在用户没有明确技术栈时，先展示方案卡片，再进入 Blu
 | Nuxt AI Fullstack | AI 原生 MVP、企业工作台、内容生成 | Nuxt 4 + Nuxt UI + Nitro + Vercel AI SDK + SQLite/Turso + Drizzle | 前后端统一 TS，部署简单，AI 交互顺滑 | SQLite 不适合高并发，复杂任务需异步化 | 并发写入、报表查询或长任务明显增长时迁移到独立数据库/队列 |
 | Next Fullstack | React 生态、团队协作、标准 SaaS | Next.js + NestJS + PostgreSQL + Prisma + Auth.js | 生态成熟，团队招聘和扩展方便 | 前后端边界更重，初期配置成本较高 | 需要更强组织边界、多人并行和复杂领域模块时拆分服务 |
 | React + FastAPI | Python AI、数据处理、模型服务 | React + FastAPI + PostgreSQL | Python AI 生态强，适合算法服务 | 前后端两套语言和部署链路 | 前端交互与业务逻辑成为主要瓶颈时补充 BFF 或统一类型契约 |
-| React + Spring Boot | 企业级系统、团队协作、合规与长期维护 | React + Vite + Ant Design + Spring Boot + PostgreSQL/MySQL | Java 企业生态成熟，团队招聘和维护成本可控 | 初期配置比轻量后端重，迭代节奏偏稳 | 需要高并发云原生弹性或快速 AI 原型时评估 Go/Nuxt AI 方案 |
+| React + Spring Boot | 企业级系统、团队协作、合规与长期维护 | React + Vite + Ant Design + Spring Boot + PostgreSQL/MySQL（运行时：**JDK 17 + Maven 3.9+**，Spring Boot 3.x 最稳组合） | Java 企业生态成熟，团队招聘和维护成本可控 | 初期配置比轻量后端重，迭代节奏偏稳 | 需要高并发云原生弹性或快速 AI 原型时评估 Go/Nuxt AI 方案 |
 | Vue + Django | 内容管理、企业后台、Python 业务系统 | Vue/Nuxt + Django + PostgreSQL | Django 管理后台和 ORM 成熟 | TS 前后端统一性较弱 | 需要复用 Python 模型或 Django Admin 的复杂运营能力时保留该方案 |
 | Go Microservice | 高吞吐 API、基础设施、服务拆分 | Go + Gin + PostgreSQL + gRPC | 性能和部署稳定 | 不适合快速构建复杂 AI 交互原型 | QPS、延迟或资源成本成为核心约束时采用 |
 | Python ML Service | 模型实验、推理服务、数据管线 | FastAPI + PyTorch + SQLite/PostgreSQL | 适合模型和评测优先的项目 | 不适合直接承载完整产品前端 | 模型服务需要独立扩缩容、GPU 调度或实验追踪时采用 |

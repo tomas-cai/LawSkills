@@ -72,6 +72,11 @@ layout:
     backend/src/test/java/: "JUnit 测试"
   conventions: "严格遵循 Spring Boot 官方 Maven 目录约定：src/main/java、src/main/resources、src/test/java；前端遵循 Vite src/public 约定与 Ant Design v6 官方快速上手范式（ConfigProvider + theme token + zhCN/dayjs locale）。"
 
+environment:
+  backend_runtime: "JDK 17 + Maven 3.9+"
+  notes:
+    - "Spring Boot 3.x 用 JDK 17 最稳：本地与 CI 使用同一 JDK 17 / Maven 3.9+ 基线，升级前核对官方支持矩阵"
+
 commands:
   install: "pnpm --dir frontend install && mvn -f backend/pom.xml clean package"
   dev: "pnpm --dir frontend dev"
@@ -83,3 +88,5 @@ starter:
   template_dirs:
     - dir: react-antd-web
       target: "frontend"
+    - dir: spring-boot-server-standalone
+      target: "backend"

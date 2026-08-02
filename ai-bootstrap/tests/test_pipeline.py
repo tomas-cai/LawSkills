@@ -36,6 +36,7 @@ class BootstrapPipelineTests(unittest.TestCase):
             "python-ml-service": ("none", "postgres"),
             "nuxt-ai-fullstack": ("nuxt", "sqlite"),
             "uni-app-nitro": ("uni-app", "sqlite"),
+            "vue-springboot": ("vue", "postgres"),
         }
         for blueprint_id, (frontend, database) in expected.items():
             with self.subTest(blueprint=blueprint_id):
@@ -1355,12 +1356,72 @@ body {
             self.assertEqual(starter["applied_dirs"], ["nuxt-app-hr"])
             self.assertEqual(starter["missing_dirs"], ["missing-template-dir"])
 
-    def test_fonts_evidence_accepts_main_css_fontsource_import(self):
-        """demo-visual-baseline：删除 fonts.ts 后，main.css 内联 @import fontsource 仍视为字体证据。"""
-        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-fonts-") as project:
+    def test_fonts_skipped_by_default_and_opt_in_via_flag(self):
+        """字体包默认跳过（国内网络友好），--fonts 显式开启后才引入依赖与 import。"""
+        # 默认：跳过字体（nuxt 与 naive-ui 两个入口）
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-fonts-default-") as project:
             result = self.run_script(
                 "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
                 "--name", "MatchCV", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for app in ("app-web-hr", "app-web-platform"):
+                pkg = (Path(project) / f"apps/{app}/package.json").read_text(encoding="utf-8")
+                self.assertNotIn("@fontsource-variable/inter", pkg)
+                main_css = (Path(project) / f"apps/{app}/app/assets/css/main.css").read_text(encoding="utf-8")
+                self.assertNotIn("@import '@fontsource-variable/inter'", main_css)
+                self.assertIn("--fonts", main_css)  # 只保留说明注释
+                fonts_ts = (Path(project) / f"apps/{app}/app/plugins/fonts.ts").read_text(encoding="utf-8")
+                self.assertNotIn("import '@fontsource-variable/inter'", fonts_ts)
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            report = json.loads(validation.stdout)
+            self.assertEqual(report["status"], "passed")
+            visual = next(c for c in report["checks"] if c["name"] == "demo-visual-baseline")
+            self.assertEqual(visual["status"], "passed")
+            for app_detail in visual["details"]["apps"]:
+                self.assertFalse(app_detail["fonts_loaded"])
+
+        # --fonts：引入 @fontsource-variable/inter，字体证据恢复
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-fonts-on-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--name", "MatchCV", "--agents", "codex", "--fonts",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for app in ("app-web-hr", "app-web-platform"):
+                pkg = (Path(project) / f"apps/{app}/package.json").read_text(encoding="utf-8")
+                self.assertIn("@fontsource-variable/inter", pkg)
+                main_css = (Path(project) / f"apps/{app}/app/assets/css/main.css").read_text(encoding="utf-8")
+                self.assertIn("@import '@fontsource-variable/inter'", main_css)
+                self.assertIn("'Inter Variable'", main_css)
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            visual = next(c for c in json.loads(validation.stdout)["checks"] if c["name"] == "demo-visual-baseline")
+            self.assertEqual(visual["status"], "passed")
+            for app_detail in visual["details"]["apps"]:
+                self.assertTrue(app_detail["fonts_loaded"])
+
+        # naive-ui（vue-django）同样默认跳过 vfonts
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-fonts-naive-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "vue-django",
+                "--name", "MatchCV", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            pkg = (Path(project) / "frontend" / "package.json").read_text(encoding="utf-8")
+            self.assertNotIn("vfonts", pkg)
+            main_ts = (Path(project) / "frontend" / "src" / "main.ts").read_text(encoding="utf-8")
+            self.assertNotIn("import 'vfonts/", main_ts)
+            self.assertIn("--fonts", main_ts)
+
+    def test_fonts_evidence_accepts_main_css_fontsource_import(self):
+        """demo-visual-baseline：字体为可选基线；main.css 内联 @import fontsource 视为字体证据，
+        两种证据都缺时只记录 fonts_note（不再计为缺失），核心基线缺失仍报 warning。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-fonts-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--name", "MatchCV", "--agents", "codex", "--fonts",
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             for app in ("app-web-hr", "app-web-platform"):
@@ -1373,7 +1434,7 @@ body {
             visual = next(c for c in report["checks"] if c["name"] == "demo-visual-baseline")
             self.assertEqual(visual["status"], "passed")
 
-            # 反向：两种字体证据都没有时才报 warning
+            # 反向：两种字体证据都没有时不再计为缺失（字体可选），核心基线缺失才报 warning
             for app in ("app-web-hr", "app-web-platform"):
                 main_css = Path(project) / f"apps/{app}/app/assets/css/main.css"
                 text = main_css.read_text(encoding="utf-8").replace(
@@ -1383,9 +1444,144 @@ body {
             validation2 = self.run_script("validate.py", "--dir", project, "--json")
             report2 = json.loads(validation2.stdout)
             visual2 = next(c for c in report2["checks"] if c["name"] == "demo-visual-baseline")
-            self.assertEqual(visual2["status"], "warning")
-            self.assertTrue(any("fonts_loaded" in w for w in visual2["warnings"]))
+            self.assertEqual(visual2["status"], "passed")
+            for app_detail in visual2["details"]["apps"]:
+                self.assertFalse(app_detail["fonts_loaded"])
+                self.assertIn("fonts_note", app_detail)
 
+            # 核心基线（layouts）缺失时仍报 warning
+            (Path(project) / "apps/app-web-hr/app/layouts").rename(
+                Path(project) / "apps/app-web-hr/app/layouts.bak"
+            )
+            validation3 = self.run_script("validate.py", "--dir", project, "--json")
+            report3 = json.loads(validation3.stdout)
+            visual3 = next(c for c in report3["checks"] if c["name"] == "demo-visual-baseline")
+            self.assertEqual(visual3["status"], "warning")
+            self.assertTrue(any("layouts" in w for w in visual3["warnings"]))
+
+
+    # ─── P1.5: Java/Maven 后端 starter + vue-springboot Blueprint ──────────────
+
+    def test_react_springboot_generates_backend_starter(self):
+        """react-springboot 生成 backend/ Spring Boot Maven 工程（此前只有 frontend）。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-java-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "react-springboot",
+                "--name", "MatchCV", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            backend = Path(project) / "backend"
+            self.assertTrue((backend / "pom.xml").exists())
+            self.assertTrue((backend / "src" / "main" / "java" / "com" / "aibootstrap" / "server" / "ServerApplication.java").exists())
+            self.assertTrue((backend / "src" / "main" / "resources" / "application.yml").exists())
+            self.assertTrue((backend / "src" / "main" / "java" / "com" / "aibootstrap" / "server" / "config" / "SecurityConfig.java").exists())
+            self.assertTrue((backend / "Dockerfile").exists())
+
+            pom = (backend / "pom.xml").read_text(encoding="utf-8")
+            self.assertIn("spring-boot-starter-parent", pom)
+            self.assertIn("<java.version>17</java.version>", pom)
+            self.assertIn("matchcv-server", pom)
+
+            # 前端 tsconfig 自包含（不依赖 workspace 根 tsconfig.base.json，任意挂载深度可构建）
+            tsconfig = (Path(project) / "frontend" / "tsconfig.json").read_text(encoding="utf-8")
+            self.assertNotIn('"extends"', tsconfig)
+
+            readme = (Path(project) / "README.md").read_text(encoding="utf-8")
+            self.assertIn("与官方 DEMO 对齐", readme)
+            self.assertIn("ant.design", readme)
+
+    def test_vue_springboot_blueprint_generates_fullstack(self):
+        """vue-springboot（Vue3 + Element Plus + Spring Boot）生成前后端并渲染官方对齐清单。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-vue-java-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "vue-springboot",
+                "--name", "MatchCV", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            self.assertTrue((Path(project) / "frontend" / "package.json").exists())
+            self.assertTrue((Path(project) / "frontend" / "src" / "main.ts").exists())
+            self.assertTrue((Path(project) / "backend" / "pom.xml").exists())
+            self.assertTrue((Path(project) / "backend" / "src" / "main" / "java").exists())
+
+            readme = (Path(project) / "README.md").read_text(encoding="utf-8")
+            self.assertIn("与官方 DEMO 对齐", readme)
+            self.assertIn("element-plus.org", readme)
+            self.assertIn("ui-stack-conformance", readme)
+
+            design = (Path(project) / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+            self.assertIn("Element Plus 2.x", design)
+            self.assertIn("官方 DEMO / 模板", design)
+
+            spec = (Path(project) / "docs" / "00-research" / "design-token-spec.md").read_text(encoding="utf-8")
+            self.assertIn("--el-*", spec)
+            self.assertIn("与官方 DEMO 对齐清单", spec)
+
+    def test_build_smoke_plan_resolves_maven_target(self):
+        """build_smoke --plan 识别 backend/ Maven 目标（mvn package），前端/后端并列。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-maven-plan-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "react-springboot",
+                "--name", "MatchCV", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            smoke = self.run_script("build_smoke.py", "--dir", project, "--plan", "--json")
+            self.assertEqual(smoke.returncode, 0, smoke.stderr)
+            data = json.loads(smoke.stdout)
+            targets = {t["dir"]: t for t in data["targets"]}
+            self.assertIn("frontend", targets)
+            self.assertIn("backend", targets)
+            self.assertEqual(targets["backend"]["build_script"], "mvn package")
+            self.assertEqual(targets["frontend"]["build_script"], "build")
+
+    def test_spring_boot_starter_renders_slug_into_pom(self):
+        """后端 pom 使用 {{PROJECT_SLUG}}-server 作为 artifactId（不同项目名可区分）。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-java-slug-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "vue-springboot",
+                "--name", "MyCool App", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            pom = (Path(project) / "backend" / "pom.xml").read_text(encoding="utf-8")
+            self.assertIn("<artifactId>mycool-app-server</artifactId>", pom)
+
+
+
+    def test_springboot_governance_docs_pin_jdk17_and_maven(self):
+        """法则文档（AGENTS/PROFILE/DESIGN/README）必须写入 JDK 17 + Maven 环境基线，
+        指导 AI Agent 安装环境时参考（Spring Boot 3.x 用 JDK 17 最稳、必须支持 Maven）。"""
+        for blueprint_id in ("react-springboot", "vue-springboot"):
+            with self.subTest(blueprint=blueprint_id):
+                with tempfile.TemporaryDirectory(prefix="ai-bootstrap-jdk-") as project:
+                    result = self.run_script(
+                        "generate.py", "--dir", project, "--blueprint", blueprint_id,
+                        "--name", "MatchCV", "--agents", "codex",
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    for doc in ("AGENTS.md", "README.md", "docs/PROJECT_PROFILE.md", "docs/DESIGN.md"):
+                        text = (Path(project) / doc).read_text(encoding="utf-8")
+                        self.assertIn("JDK 17", text, f"{doc} missing JDK 17")
+                        self.assertIn("Maven", text, f"{doc} missing Maven")
+                        self.assertIn("mvn -f backend/pom.xml", text, f"{doc} missing maven command")
+                        self.assertIn("java.version", text, f"{doc} missing java.version pin")
+                        self.assertNotIn("{{", text)
+
+    def test_springboot_environment_baseline_is_spring_specific(self):
+        """环境基线按栈派生：非 Java 后端不出现 JDK/Maven 指导，前端基线仍存在。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-env-node-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--name", "MatchCV", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            agents = (Path(project) / "AGENTS.md").read_text(encoding="utf-8")
+            self.assertIn("Node.js 20+", agents)
+            self.assertNotIn("JDK 17", agents)
+            self.assertNotIn("mvn -f", agents)
+            readme = (Path(project) / "README.md").read_text(encoding="utf-8")
+            self.assertIn("Node.js 20+", readme)
 
 if __name__ == "__main__":
     unittest.main()

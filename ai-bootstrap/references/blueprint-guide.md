@@ -67,6 +67,8 @@ skills:
 - `design_system` 只声明实现能力和入口，不把 UI 库默认主题当作产品设计；颜色和版式由生成的语义令牌规范进一步确认。
 - 必须声明 `layout`：`source_root` 与 `key_dirs` 要符合技术栈官方约定，不要自创目录名；官方未规定子目录时，采用该生态常见模块边界并在 `conventions` 中说明。
 - 建议声明 `commands`：从项目根目录可直接运行的安装、启动和测试命令，避免生成 README 时给不同技术栈套用同一个 `pnpm install`。
+- 可选声明 `environment`：`backend_runtime` 记录后端运行时基线（如 Spring Boot 3.x 用 `JDK 17 + Maven 3.9+`），`notes` 追加补充说明；生成器会把派生的「环境与工具链基线」写入 AGENTS.md / PROJECT_PROFILE.md / DESIGN.md / README，指导 AI Agent 安装环境时参考。
+- 字体策略由生成器统一处理：涉及 Google 字体打包（`vfonts` / `@fontsource-variable/inter`）的 starter **默认跳过字体**（国内下载慢/易失败），`generate.py --fonts`（或 `AI_BOOTSTRAP_FONTS=1`）才引入依赖与 import；Blueprint 不必为此声明字段。
 - 可选声明 `skills`：当技术栈提供官方 AI Skill 时，记录名称、安装命令、触发词和官方文档；生成器会写入 `AGENTS.md`、`README.md` 和 `PROJECT_PROFILE.md`。
 - 后端框架使用独立 npm 包名时，应在 `stack.backend.package` 声明真实包名；例如独立 Nitro API 使用 `nitropack`，而不是旧版 `nitro` 包。
 - 不要在 Blueprint 中放入凭据、环境变量值或不可移植的绝对路径。

@@ -1,0 +1,94 @@
+# vue-springboot Blueprint v1.0.0
+# Vue 3 (Vite SPA) + Element Plus 2.x PC 管理端 UI + Spring Boot + PostgreSQL/MySQL
+
+id: vue-springboot
+name: Vue 3 + Element Plus + Spring Boot
+version: 1.0.0
+description: "Vue 3 PC 管理端（Element Plus 2.x 企业级 UI）+ Spring Boot + PostgreSQL/MySQL —— 国内企业级主流前后端分离组合"
+author: "AI Bootstrap"
+tags: [vue, vue3, typescript, element-plus, java, spring-boot, enterprise, web]
+
+stack:
+  frontend:
+    framework: vue
+    version: "3.x"
+    language: typescript
+    build_tool: vite
+    ui_library: element-plus
+    state_management: pinia
+
+  backend:
+    framework: spring-boot
+    version: "3.x"
+    language: java
+    orm: spring-data-jpa
+    api_style: rest
+    testing: junit
+
+  database:
+    primary: postgres
+    version: "17"
+    alternative: mysql
+
+  auth:
+    provider: spring-security
+    strategy: jwt
+
+  deployment:
+    type: docker
+    platform: "docker + k8s"
+    ci: github-actions
+
+  package_manager: pnpm + maven
+  monorepo: none
+
+design_system:
+  status: required
+  ui_library: element-plus
+  styling: css-variables (--el-*)
+  icon_library: "@element-plus/icons-vue"
+  color_mode: light-dark
+  token_preset: enterprise-ops-desk
+  official_paradigm: "Element Plus 2.x 官方 quickstart 范式（element-plus.org/zh-CN/guide/quickstart.html + theming）：完整引入 import ElementPlus from 'element-plus' + import 'element-plus/dist/index.css' + app.use(ElementPlus)（快速开始，官方推荐）；体积极致时改用 unplugin-vue-components + unplugin-auto-import + ElementPlusResolver（来自 unplugin-vue-components/resolvers）按需引入（此时不引入全量 css，且 vite.config 需配置插件）；Volar 全局组件类型在 tsconfig compilerOptions.types 加入 element-plus/global；中文 locale 用 element-plus/es/locale/lang/zh-cn（app.use 选项或 el-config-provider）；主题用 --el-* CSS 变量（:root 全局覆盖或组件类名作用域覆盖）或 SCSS @use 'element-plus/theme-chalk/src/common/var.scss' with (...)；禁止混用全量 css 与 ElementPlusResolver"
+  theme_entry:
+    framework: frontend/src/main.ts（app.use(ElementPlus) 或 ElementPlusResolver 按需）
+    global_tokens: frontend/src/styles/tokens.css（--el-* 语义令牌覆盖）
+    components: --el-* CSS 变量 + el-config-provider（locale / 主题）
+  component_baseline: [button, input, card, form, table, dialog, menu/navigation, tag/badge, empty/error]
+
+layout:
+  source_root: .
+  key_dirs:
+    frontend/: "Vue 3 + Vite + Element Plus PC 管理端"
+    frontend/src/: "前端源码（views/components/composables/styles）"
+    frontend/src/views/: "页面视图与路由"
+    frontend/src/styles/: "全局样式与 --el-* 语义令牌"
+    frontend/src/composables/: "组合式函数与 Mock/API port"
+    backend/: "Spring Boot Maven 工程"
+    backend/src/main/java/: "Java 包结构（controller、service、repository、entity）"
+    backend/src/main/resources/: "application.yml 与资源文件"
+    backend/src/test/java/: "JUnit 测试"
+  conventions: "严格遵循 Spring Boot 官方 Maven 目录约定：src/main/java、src/main/resources、src/test/java；前端遵循 Vite src/public 约定与 Element Plus 2.x 官方引入范式（完整引入 / ElementPlusResolver 按需，二选一）；Mock-first：前端 port 层先 Mock，联调时切换 API adapter 直连 backend。/api。"
+
+environment:
+  backend_runtime: "JDK 17 + Maven 3.9+"
+  notes:
+    - "Spring Boot 3.x 用 JDK 17 最稳：本地与 CI 使用同一 JDK 17 / Maven 3.9+ 基线，升级前核对官方支持矩阵"
+
+commands:
+  install: "pnpm --dir frontend install && mvn -f backend/pom.xml clean package"
+  dev: "pnpm --dir frontend dev"
+  test: "pnpm --dir frontend typecheck && mvn -f backend/pom.xml test"
+
+architecture:
+  style: layered
+  pattern: modular-monolith
+
+starter:
+  enabled: true
+  mode: mock-first
+  template_dirs:
+    - dir: vue-element-plus-web
+      target: "frontend"
+    - dir: spring-boot-server-standalone
+      target: "backend"

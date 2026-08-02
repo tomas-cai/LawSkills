@@ -20,7 +20,7 @@
 3. **中文环境**：`locale={zhCN}` + `date-locale={dateZhCN}`（均来自 `naive-ui`）。
 4. **按需可配**：`unplugin-vue-components` + `NaiveUiResolver` + `unplugin-auto-import`（此时 `main.ts` 不注册 `app.use(naive)`）。
 5. **消息反馈**：`useMessage()` 必须在 `n-message-provider` 内调用（`App.vue` 已包裹）。
-6. **官方字体（可选）**：`vfonts`（Lato / Inter）已在 `main.ts` 引入，主题与中文排版更完整。
+6. **官方字体（可选，默认跳过）**：`vfonts`（Lato / Inter，Google 字体打包为 npm 自托管）国内下载慢/易失败，默认**不引入**（`main.ts` 只保留说明注释，系统字体栈已足够）。需要时用 `generate.py --fonts` 重新生成，或手动 `pnpm add vfonts` 后在 `main.ts` 引入 `vfonts/Lato.css` / `vfonts/Inter.css`。
 
 ## 运行
 

@@ -18,6 +18,11 @@
 
 设计令牌与主题入口见 [`docs/00-research/design-token-spec.md`](docs/00-research/design-token-spec.md)。
 
+## 环境要求
+
+{{ENVIRONMENT_BASELINE}}
+
+
 ## 与官方 DEMO 对齐
 
 {{OFFICIAL_DEMO_ALIGNMENT}}

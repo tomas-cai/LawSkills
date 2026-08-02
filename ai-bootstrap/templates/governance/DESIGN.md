@@ -30,6 +30,14 @@ generated: {{CREATED_DATE}}
 
 {{ARCHITECTURE_CONSTRAINTS}}
 
+## 环境与工具链约束
+
+> 本地开发与 CI 使用同一运行时基线；AI Agent 安装环境前先读 AGENTS.md 的环境基线。
+
+{{ENVIRONMENT_BASELINE}}
+
+---
+
 ## 项目目录契约
 
 > 本文档为目录契约的**唯一来源**；README 与 PROJECT_PROFILE 只引用本表，不另立职责表。

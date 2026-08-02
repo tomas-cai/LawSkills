@@ -13,8 +13,7 @@
     "@vicons/ionicons5": "^0.13.0",
     "naive-ui": "^2.42.0",
     "pinia": "^3.0.0",
-    "vfonts": "^0.0.3",
-    "vue": "^3.5.0",
+{{NAIVE_FONT_DEP}}    "vue": "^3.5.0",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {

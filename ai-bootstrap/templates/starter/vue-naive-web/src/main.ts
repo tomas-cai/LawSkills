@@ -5,9 +5,7 @@ import naive from 'naive-ui'
 import App from './App.vue'
 import router from './router'
 import './styles/tokens.css'
-// Naive UI 官方推荐字体（vfonts，可选）：主题与中文排版更完整
-import 'vfonts/Lato.css'
-import 'vfonts/Inter.css'
+{{NAIVE_FONT_IMPORTS}}
 
 // ── Naive UI 2.x 官方范式 ──
 // 1) 不需要导入任何 CSS：组件独立导出、tree-shaking 友好；不要全量导入样式文件（dist 下 index.css 属反模式）
