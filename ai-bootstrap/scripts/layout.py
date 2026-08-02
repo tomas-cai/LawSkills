@@ -8,6 +8,7 @@ AI_DIR = DOCS_DIR / "ai"
 
 # Superpowers / SDD lifecycle stages.
 RESEARCH_DIR = DOCS_DIR / "00-research"
+DESIGN_TOKEN_SPEC_PATH = RESEARCH_DIR / "design-token-spec.md"
 REQUIREMENTS_DIR = DOCS_DIR / "01-requirements"
 SPECS_DIR = DOCS_DIR / "02-specs"
 PLANS_DIR = DOCS_DIR / "03-plans"

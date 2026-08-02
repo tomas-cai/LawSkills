@@ -1,0 +1,132 @@
+# Nuxt AI Fullstack Blueprint v1.3.0
+# Nuxt 4 + Nuxt UI + Vercel AI SDK + SQLite/Turso + Drizzle — 多应用单仓（turbo）
+
+id: nuxt-ai-fullstack
+name: Nuxt AI Fullstack
+version: 1.3.0
+description: "Nuxt 4 + Nuxt UI + Vercel AI SDK + SQLite/Turso + Drizzle 多应用单仓：HR 前台 + 运营后台 + Nitro API，适合 AI 原生 MVP 和企业工作台"
+author: "AI Bootstrap"
+tags: [nuxt, vue, typescript, ai, vercel, sqlite, turso, drizzle, web, monorepo]
+
+stack:
+  frontend:
+    framework: nuxt
+    version: "4.x"
+    language: typescript
+    ui_library: nuxt-ui
+    state_management: pinia
+
+  backend:
+    framework: nitro
+    version: "2.x"
+    language: typescript
+    orm: drizzle
+    api_style: typed REST + server functions
+
+  ai:
+    sdk: vercel-ai-sdk
+    provider_strategy: model-provider-adapter
+
+  database:
+    primary: sqlite
+    version: "3"
+    production: turso/libsql
+
+  auth:
+    provider: jwt
+    strategy: http-only-cookie + bearer
+    role_model: author
+
+  deployment:
+    type: serverless
+    platform: "vercel + turso"
+    ci: github-actions
+
+  package_manager: pnpm
+  monorepo: turbo
+
+apps:
+  - id: app-web-hr
+    name: HR 前台工作台
+    kind: nuxt
+    port: 3000
+    starter_dir: nuxt-app-hr
+    checks: ["/"]
+  - id: app-web-platform
+    name: 平台运营管理后台
+    kind: nuxt
+    port: 3002
+    starter_dir: nuxt-app-platform
+    checks: ["/"]
+  - id: app-web-server
+    name: 后端 API 服务
+    kind: nitro
+    port: 3100
+    starter_dir: nitro-server-standalone
+    checks: ["/health", "/api/echo?name=Smoke"]
+
+design_system:
+  status: required
+  ui_library: nuxt-ui
+  styling: tailwindcss v4 (@theme static) + nuxt-ui semantic colors
+  icon_library: lucide
+  color_mode: light-dark
+  token_preset: cobalt-workbench
+  official_paradigm: "Nuxt UI v4 / Tailwind v4 starter 范式（dashboard/chat）：@import tailwindcss theme(static) + @theme static 注册品牌色阶 + ui.colors 语义映射 + ui.theme.colors 注册"
+  theme_entry:
+    framework: app/app.config.ts
+    global_tokens: app/assets/css/main.css
+    components: Nuxt UI theme slots and variants
+  component_baseline: [button, input, card, badge, navigation, dialog, table/list, empty/error]
+
+architecture:
+  style: layered
+  pattern: modular-monolith
+
+layout:
+  source_root: app/
+  key_dirs:
+    app/: "Nuxt 4 官方应用目录：pages、components、composables、layouts、middleware、plugins、utils"
+    app/pages/: "页面与路由"
+    app/components/: "Vue 组件"
+    app/composables/: "组合式函数"
+    app/middleware/: "路由守卫"
+    routes/: "Nitro standalone 根级服务端路由（Nitro ≥2.13 不再自动扫描 server/）"
+    routes/api/: "服务端 API 路由"
+    assets/: "可编译静态资源（入口 app/assets/css/main.css）"
+    public/: "无需构建的公共静态文件"
+  conventions: "严格遵循 Nuxt 4 与 Nitro 官方目录约定：Nuxt 应用代码放 app/，Nitro standalone 路由放根级 routes/，样式入口使用 app/assets/css/main.css。"
+
+commands:
+  install: "pnpm install"
+  dev: "pnpm dev"
+  test: "pnpm test"
+  typecheck: "pnpm typecheck"
+
+skills:
+  - name: "Nuxt UI"
+    description: "官方 Nuxt UI 使用技能：安装、主题、125+ 组件、组合式函数、表单、覆盖层与布局最佳实践"
+    install: "npx skills add nuxt/ui"
+    trigger: "/nuxt-ui"
+    docs: "https://ui.nuxtjs.org.cn/docs/getting-started/ai/skills"
+    source: "https://github.com/nuxt/ui/tree/v4/skills/nuxt-ui"
+
+starter:
+  enabled: true
+  mode: mock-first
+  monorepo_dir: nuxt-monorepo-root
+  template_dirs:
+    - dir: nuxt-monorepo-root
+      target: ""
+    - dir: nuxt-app-hr
+      target: apps/app-web-hr
+    - dir: nuxt-app-platform
+      target: apps/app-web-platform
+    - dir: nitro-server-standalone
+      target: apps/app-web-server
+  features:
+    - multi-app-monorepo
+    - jwt-author-auth
+    - project-create-edit
+    - demo-visual-baseline
+    - ui-stack-conformance

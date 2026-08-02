@@ -16,17 +16,27 @@ dna:
     primary_language: "{{PRIMARY_LANGUAGE}}"
     frontend:
       framework: "{{FRONTEND_FRAMEWORK}}"
+      version: "{{FRONTEND_VERSION}}"
+      ui_library: "{{FRONTEND_UI_LIBRARY}}"
+      state_management: "{{FRONTEND_STATE_MANAGEMENT}}"
     backend:
       framework: "{{BACKEND_FRAMEWORK}}"
+      version: "{{BACKEND_VERSION}}"
+      language: "{{BACKEND_LANGUAGE}}"
+      api_style: "{{BACKEND_API_STYLE}}"
       orm: "{{ORM}}"
+    ai:
+      sdk: "{{AI_SDK}}"
     database:
       primary:
         type: "{{DATABASE_TYPE}}"
         version: "{{DATABASE_VERSION}}"
+      production: "{{DATABASE_PRODUCTION}}"
     auth:
       provider: "{{AUTH_PROVIDER}}"
     deployment:
       type: "{{DEPLOYMENT_TYPE}}"
+      platform: "{{DEPLOYMENT_PLATFORM}}"
     package_manager: "{{PACKAGE_MANAGER}}"
     monorepo: "{{MONOREPO_TOOL}}"
 
@@ -68,13 +78,23 @@ dna:
 
 | 层次 | 技术 | 版本 |
 |------|------|------|
-| 前端 | {{FRONTEND_FRAMEWORK}} | 最新 |
-| 后端 | {{BACKEND_FRAMEWORK}} | 最新 |
+| 前端 | {{FRONTEND_FRAMEWORK}} + {{FRONTEND_UI_LIBRARY}} | {{FRONTEND_VERSION}} |
+| 后端 | {{BACKEND_FRAMEWORK}} | {{BACKEND_VERSION}} |
+| AI | {{AI_SDK}} | — |
 | 数据库 | {{DATABASE_TYPE}} | {{DATABASE_VERSION}} |
+| 生产数据库 | {{DATABASE_PRODUCTION}} | — |
 | ORM | {{ORM}} | — |
 | 认证 | {{AUTH_PROVIDER}} | — |
-| 部署 | {{DEPLOYMENT_TYPE}} | — |
+| 部署 | {{DEPLOYMENT_PLATFORM}} | {{DEPLOYMENT_TYPE}} |
 | 包管理器 | {{PACKAGE_MANAGER}} | — |
+
+### 项目目录契约
+
+{{PROJECT_LAYOUT_TABLE}}
+
+{{PROJECT_LAYOUT_CONVENTIONS}}
+
+{{PROJECT_SKILLS_SECTION}}
 
 ### Agent 配置
 

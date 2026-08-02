@@ -1,0 +1,86 @@
+# uni-app-nitro Blueprint v1.0.0
+# uni-app (Vue3 + uni-ui) + Nitro + Drizzle + SQLite/Turso + Vercel AI SDK
+
+id: uni-app-nitro
+name: UniApp + Nitro
+version: 1.0.0
+description: "uni-app 移动端（H5/小程序/App）+ Nitro API + SQLite/Turso + Vercel AI SDK"
+author: "AI Bootstrap"
+tags: [uni-app, vue3, typescript, nitro, mobile, h5, miniprogram, app, ai]
+
+stack:
+  frontend:
+    framework: uni-app
+    version: "3.x"
+    language: typescript
+    build_tool: vite
+    ui_library: uni-ui
+    state_management: pinia
+
+  backend:
+    framework: nitro
+    package: nitropack
+    version: "2.x"
+    language: typescript
+    orm: drizzle
+    api_style: typed rest + server functions
+
+  ai:
+    sdk: vercel-ai-sdk
+    provider_strategy: model-provider-adapter
+
+  database:
+    primary: sqlite
+    version: "3"
+    production: turso/libsql
+
+  auth:
+    provider: jwt
+    strategy: bearer + http-only-cookie
+    role_model: author
+
+  deployment:
+    type: serverless
+    platform: "vercel + turso"
+    ci: github-actions
+
+  package_manager: pnpm
+  monorepo: pnpm-workspace
+
+design_system:
+  status: required
+  ui_library: uni-ui
+  styling: scss + css-variables
+  icon_library: uni-icons
+  color_mode: light-dark
+  token_preset: mobile-coach
+  theme_entry:
+    framework: apps/mobile/src/App.vue
+    global_tokens: apps/mobile/src/uni.scss
+    components: uni-ui theme variables + component props
+  component_baseline: [button, input, cell, list, badge, navigation, tabbar, dialog, empty/error]
+
+layout:
+  source_root: apps/
+  key_dirs:
+    apps/mobile/: "uni-app 移动端（H5/微信小程序/App）"
+    apps/mobile/src/pages/: "uni-app 页面与路由"
+    apps/mobile/src/components/: "Vue 组件"
+    apps/mobile/src/composables/: "组合式函数"
+    apps/mobile/src/services/: "feature services 与 Mock/API adapters"
+    apps/mobile/src/styles/: "全局样式与语义令牌"
+    apps/api/: "Nitro 后端"
+    apps/api/server/api/: "Nitro API 路由"
+    apps/api/server/utils/: "鉴权与共享逻辑"
+    apps/api/db/: "Drizzle schema 与迁移"
+    packages/contracts/: "前后端共享 TS 类型"
+  conventions: "遵循 uni-app Vue3/Vite 官方目录约定与 Nitro server 目录约定；移动端与 API 独立，共享 packages/contracts。"
+
+commands:
+  install: "pnpm install"
+  dev: "pnpm --parallel -r run dev"
+  test: "pnpm --parallel -r run typecheck"
+
+architecture:
+  style: layered
+  pattern: modular-monolith

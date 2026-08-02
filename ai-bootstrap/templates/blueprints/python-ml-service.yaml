@@ -49,6 +49,29 @@ stack:
   build_tool: makefile
   devcontainer: true
 
+design_system:
+  status: not-applicable
+  rationale: no frontend is included in this Blueprint
+
 architecture:
   style: layered
   pattern: modular-monolith
+
+layout:
+  source_root: app/
+  key_dirs:
+    app/: "FastAPI + ML 服务应用包"
+    app/api/: "API 路由"
+    app/core/: "配置、依赖与共享逻辑"
+    app/models/: "ML 模型定义与推理服务"
+    app/schemas/: "Pydantic 请求/响应模型"
+    app/services/: "业务服务"
+    notebooks/: "Jupyter Lab 实验"
+    tests/: "pytest 测试"
+    data/: "数据集与缓存（不入库）"
+  conventions: "遵循 FastAPI 官方推荐的应用包结构，ML 代码与 API 层分离；数据产物放入 data/ 或模型注册表，不散落根目录。"
+
+commands:
+  install: "poetry install"
+  dev: "uvicorn app.main:app --reload"
+  test: "pytest"

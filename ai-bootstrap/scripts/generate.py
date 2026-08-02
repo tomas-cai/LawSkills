@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI Bootstrap — Governance File Generator v1.0
+AI Bootstrap — Governance File Generator v1.3
 
 Generates governance files (AGENTS.md, PROJECT_PROFILE.md, DESIGN.md, MEMORY.md, ADR, etc.)
 based on a Blueprint definition and user input.
@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Optional
 
 from yaml_utils import dump_yaml, load_yaml
+from framework_gate import constraints_for_ui_library, render_constraints_markdown
 from layout import (
     ADR_DIR,
     ADR_INDEX_PATH,
@@ -28,6 +29,7 @@ from layout import (
     CURRENT_TASKS_PATH,
     DECISION_INDEX_PATH,
     DESIGN_PATH,
+    DESIGN_TOKEN_SPEC_PATH,
     INITIAL_ADR_PATH,
     MANIFEST_PATH,
     MEMORY_PATH,
@@ -44,8 +46,16 @@ TEMPLATES_DIR = SKILL_DIR / "templates"
 BLUEPRINTS_DIR = TEMPLATES_DIR / "blueprints"
 GOV_TEMPLATES_DIR = TEMPLATES_DIR / "governance"
 PROJECT_TEMPLATES_DIR = TEMPLATES_DIR / "project"
+STARTER_TEMPLATES_DIR = TEMPLATES_DIR / "starter"
 
-BOOTSTRAP_VERSION = "1.0.0"
+# Text files inside starter templates get {{VARIABLE}} rendering on copy.
+STARTER_TEXT_EXTENSIONS = {
+    ".vue", ".ts", ".js", ".mjs", ".cjs", ".json", ".md", ".markdown",
+    ".yaml", ".yml", ".css", ".scss", ".html", ".txt", ".toml",
+}
+STARTER_TEXT_FILENAMES = {".env.example", ".gitignore"}
+
+BOOTSTRAP_VERSION = "1.6.0"
 
 # Agent platform configurations
 AGENT_PLATFORMS = {
@@ -188,8 +198,10 @@ def render_template(template_path: Path, variables: dict) -> str:
 
     # Templates intentionally use only flat variables.  Structured blocks are
     # rendered before this function (for example, AGENT_DEFINITIONS).
+    # Only uppercase {{VARIABLE}} placeholders count as unresolved template
+    # syntax; Vue/Nuxt {{ interpolation }} (lowercase expressions) is kept.
     import re
-    unresolved = re.findall(r"\{\{|\{%", content)
+    unresolved = re.findall(r"\{\{\s*[A-Z][A-Z0-9_]*\s*\}\}|\{%", content)
     if unresolved:
         raise ValueError(f"Unsupported template syntax remains in {template_path.name}")
 
@@ -342,6 +354,209 @@ def _engineering_practices(stack: dict, primary_language: str) -> str:
     return "\n".join(practices)
 
 
+
+def _framework_constraints_markdown(stack: dict) -> str:
+    """按 Blueprint 声明的 UI 库渲染 DESIGN.md「框架约束」段落。"""
+    frontend = stack.get("frontend", {}) if isinstance(stack, dict) else {}
+    ui_library = frontend.get("ui_library", "") if isinstance(frontend, dict) else ""
+    constraints = constraints_for_ui_library(ui_library)
+    return render_constraints_markdown(constraints)
+
+
+def _design_token_spec(blueprint: dict, variables: dict) -> str:
+    """Build the stack-aware design-token contract persisted with the project."""
+    stack = blueprint.get("stack", {}) if isinstance(blueprint, dict) else {}
+    frontend = stack.get("frontend", {}) if isinstance(stack, dict) else {}
+    design = blueprint.get("design_system", {}) if isinstance(blueprint, dict) else {}
+    framework = frontend.get("framework", "none")
+    version = frontend.get("version", "")
+    ui_library = frontend.get("ui_library", design.get("ui_library", "none"))
+    required = framework not in (None, "", "none")
+    status = design.get("status", "required" if required else "not-applicable")
+
+    presets = {
+        "nuxt-ui": {
+            "direction": "calm command center: cool canvas, indigo action color, teal progress accent",
+            "primary": "#4F46E5",
+            "accent": "#0F9F9A",
+        },
+        "shadcn": {
+            "direction": "quiet product surface: neutral canvas, ink-led hierarchy, one confident indigo action",
+            "primary": "#4F46E5",
+            "accent": "#0EA5E9",
+        },
+        "naive-ui": {
+            "direction": "structured operations desk: slate surfaces, blue action color, amber attention state",
+            "primary": "#2563EB",
+            "accent": "#D97706",
+        },
+    }
+    preset = presets.get(ui_library, {
+        "direction": "semantic product baseline; derive the accent from the product domain before implementation",
+        "primary": "#2563EB",
+        "accent": "#0EA5E9",
+    })
+    preset_name = design.get("token_preset", ui_library or "framework-neutral")
+    direction = design.get("direction", preset["direction"])
+    primary = design.get("primary", preset["primary"])
+    accent = design.get("accent", preset["accent"])
+    theme_entry = design.get("theme_entry", {})
+    if not isinstance(theme_entry, dict):
+        theme_entry = {"implementation": str(theme_entry)}
+    component_baseline = design.get("component_baseline", [
+        "button", "input", "card", "badge", "navigation", "dialog", "table/list", "empty/error",
+    ])
+    if not isinstance(component_baseline, list):
+        component_baseline = [str(component_baseline)]
+
+    lines = [
+        "# Design Token Spec",
+        "",
+        "> 这是 Bootstrap 的产品设计基线，不是 UI 库默认主题的复制品。实现前需核对当前安装版本的官方主题 API，并保持语义令牌为唯一来源。",
+        "",
+        "## 1. 选型上下文",
+        "",
+        f"- **项目**: {variables.get('PROJECT_NAME', '')}",
+        f"- **前端**: {framework} {version}".rstrip(),
+        f"- **UI 库**: {ui_library}",
+        f"- **令牌状态**: {status}",
+        f"- **令牌基线**: {preset_name}",
+        f"- **设计方向**: {direction}",
+        "",
+    ]
+    if not required:
+        lines.extend([
+            "该 Blueprint 不包含前端界面，因此本文件只作为占位记录；新增前端时必须重新选择 UI 库、主题入口和令牌实现方式。",
+            "",
+        ])
+        return "\n".join(lines)
+
+    lines.extend([
+        "## 2. 技术栈主题入口",
+        "",
+        "| 层次 | 入口 | 约束 |",
+        "|---|---|---|",
+        f"| 框架主题 | {theme_entry.get('framework', '框架官方 theme/config')} | 优先使用框架官方主题入口 |",
+        f"| 全局令牌 | {theme_entry.get('global_tokens', '全局 CSS variables')} | 语义变量集中定义，页面禁止散落魔法值 |",
+        f"| 组件主题 | {theme_entry.get('components', '组件库 theme/variants')} | 通过组件库 variants/slots 复用 |",
+        f"| 图标 | {design.get('icon_library', '使用项目已选图标库')} | 统一尺寸、笔画和语义，不混用 emoji |",
+        "",
+        "## 3. 语义颜色",
+        "",
+        "| 令牌 | Light 基线 | 用途 |",
+        "|---|---|---|",
+        "| `canvas` | `#F6F8FC` | 页面底色 |",
+        "| `surface` | `#FFFFFF` | 卡片、表单、导航面板 |",
+        "| `surface-muted` | `#EEF2F7` | 次级区块和禁用背景 |",
+        "| `ink` | `#172033` | 主文本和标题 |",
+        "| `ink-muted` | `#667085` | 辅助文本、说明 |",
+        "| `border` | `#D8DEE9` | 分隔线和控件边界 |",
+        f"| `primary` | `{primary}` | 主操作、链接、选中态 |",
+        f"| `accent` | `{accent}` | 产品特征、进度或辅助强调 |",
+        "| `success` | `#15803D` | 成功状态 |",
+        "| `warning` | `#B45309` | 警告和需处理状态 |",
+        "| `danger` | `#B42318` | 错误、破坏性操作 |",
+        "| `focus` | `#7C3AED` | 键盘焦点环 |",
+        "",
+        "Dark mode 必须重新检查对比度，不能只对 Light 值做反转；状态色在 dark surface 上至少保持可读性。",
+        "",
+        "## 4. Typography scale",
+        "",
+        "| 角色 | 字号 / 行高 | 字重 |",
+        "|---|---|---|",
+        "| Display | 40/48 | 700 |",
+        "| Heading | 28/36 | 650 |",
+        "| Body | 16/24 | 400 |",
+        "| Label | 13/18 | 600 |",
+        "| Caption | 12/16 | 500 |",
+        "| Data/code | 13/20 | 500 |",
+        "",
+        "字体优先使用产品允许的 web font；未加载成功时回退到 `Inter`, `PingFang SC`, `Microsoft YaHei`, `sans-serif`。标题、正文、标签和数据不得共用未定义的默认字号。",
+        "",
+        "## 5. Layout、shape 与行为",
+        "",
+        "- **Spacing**: `4, 8, 12, 16, 24, 32, 48, 64` px；页面区块优先使用 24/32/48 的节奏。",
+        "- **Content width**: reading `720px`，workbench `1200px`，wide dashboard `1440px`；不要让首屏内容无限拉伸。",
+        "- **Control height**: compact `32px`，default `40px`，large `48px`；同一表单区只选一种密度。",
+        "- **Radius**: control `8px`，card `12px`，overlay `16px`；不要每个组件自行发明圆角。",
+        "- **Border / shadow**: 默认使用 1px border；shadow 只表达层级，不作为装饰背景。",
+        "- **Breakpoints**: `640 / 768 / 1024 / 1280px`；移动端先保证操作顺序和触控目标，再压缩布局。",
+        "- **Motion**: 过渡 150–200ms，页面级进入动效不超过一次；尊重 `prefers-reduced-motion`。",
+        "- **Focus**: 所有可交互元素必须有 2px focus ring，不能仅依赖颜色变化。",
+        "",
+        "## 6. 组件基线",
+        "",
+    ])
+    for component in component_baseline:
+        lines.append(f"- [ ] `{component}`：定义 default / hover / pressed / selected / disabled / loading（适用时）状态，并验证键盘焦点与响应式表现。")
+    lines.extend([
+        "",
+        "## 7. 实现规则",
+        "",
+        f"1. 在 `{theme_entry.get('global_tokens', '全局主题文件')}` 建立语义变量，再映射到 `{ui_library}` 的 theme、slots 或 variants。",
+        "2. 页面和业务组件只能消费语义令牌（如 `primary`, `surface`, `ink-muted`），禁止直接复制 hex、任意 Tailwind 色阶或 UI 库默认色。",
+        "3. 首屏完成前，至少验收一个真实空状态、一个错误状态、一个表单控件和一个主操作，不以“组件能渲染”作为完成标准。",
+        "4. 若产品领域需要更强识别度，优先调整 `accent`、字体和内容结构；不要用渐变、阴影和装饰堆砌来弥补没有设计方向。",
+        "",
+        "## 8. 首屏验收清单",
+        "",
+        "- [ ] 首屏能看出产品的单一核心任务，而不是 UI 库 starter demo。",
+        "- [ ] 颜色、字号、间距、圆角、控件密度均来自本文件。",
+        "- [ ] Light / dark（如支持）、hover、focus、disabled、loading、empty、error 状态已验证。",
+        "- [ ] 640px 及以上断点和移动端触控目标可用。",
+        "- [ ] 运行官方组件库主题检查，确认本文件的实现入口与安装版本一致。",
+    ])
+    return "\n".join(lines)
+
+
+def _project_layout_table(blueprint: dict) -> str:
+    """Render the Blueprint-declared stack layout as a Markdown table."""
+    layout = blueprint.get("layout", {}) if isinstance(blueprint, dict) else {}
+    key_dirs = layout.get("key_dirs", {}) if isinstance(layout, dict) else {}
+    if not isinstance(key_dirs, dict) or not key_dirs:
+        key_dirs = {"src/": "application source code (default layout)"}
+
+    rows = ["| 目录 | 职责 |", "|---|---|"]
+    source_root = layout.get("source_root") if isinstance(layout, dict) else None
+    if source_root and source_root not in key_dirs:
+        rows.append(f"| `{source_root}` | 源码根目录 |")
+    for path, description in key_dirs.items():
+        rows.append(f"| `{path}` | {description} |")
+    return "\n".join(rows)
+
+
+def _project_layout_conventions(blueprint: dict) -> str:
+    """Return the stack-specific layout convention declared by the Blueprint."""
+    layout = blueprint.get("layout", {}) if isinstance(blueprint, dict) else {}
+    if isinstance(layout, dict) and layout.get("conventions"):
+        return str(layout["conventions"])
+    return "目录结构遵循对应技术栈的官方约定；官方未约定的子目录按业务模块补充，并记录在本文件中。"
+
+
+def _recommended_skills_section(blueprint: dict) -> str:
+    """Render the Blueprint-declared recommended AI skills as a Markdown section."""
+    skills = blueprint.get("skills", []) if isinstance(blueprint, dict) else []
+    if not isinstance(skills, list) or not skills:
+        return ""
+
+    lines = [
+        "## 推荐 AI 技能",
+        "",
+        "| 技能 | 说明 | 安装命令 | 调用方式 | 官方文档 |",
+        "|---|---|---|---|---|",
+    ]
+    for skill in skills:
+        if not isinstance(skill, dict):
+            continue
+        name = skill.get("name", "Skill")
+        description = skill.get("description", "")
+        install = skill.get("install", "")
+        trigger = skill.get("trigger", "")
+        docs = skill.get("docs", "")
+        lines.append(f"| {name} | {description} | `{install}` | `{trigger}` | [文档]({docs}) |")
+    return "\n".join(lines) + "\n"
+
+
 def _agents_yaml(agent_configs: list[dict]) -> str:
     lines = []
     for config in agent_configs:
@@ -354,6 +569,13 @@ def _agents_yaml(agent_configs: list[dict]) -> str:
 
 def _agent_summary_rows(agent_configs: list[dict]) -> str:
     return "\n".join(f"| {config['name']} | {config['role']} |" for config in agent_configs)
+
+
+def _slugify(name: str) -> str:
+    """Convert a project name into a package-safe slug."""
+    import re
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", name.strip().lower()).strip("-")
+    return slug or "app"
 
 
 def build_variables(args, blueprint: dict) -> dict:
@@ -390,7 +612,11 @@ def build_variables(args, blueprint: dict) -> dict:
         pm_name = "npm"
 
     stack = blueprint.get("stack", {})
+    frontend_stack = stack.get("frontend", {}) if isinstance(stack, dict) else {}
+    backend_stack = stack.get("backend", {}) if isinstance(stack, dict) else {}
+    ai_stack = stack.get("ai", {}) if isinstance(stack, dict) else {}
     database = stack.get("database", {}) if isinstance(stack, dict) else {}
+    deployment_stack = stack.get("deployment", {}) if isinstance(stack, dict) else {}
     primary_database = database.get("primary", {}) if isinstance(database, dict) else {}
     if isinstance(primary_database, dict):
         database_type = primary_database.get("type") or primary_database.get("name", "unknown")
@@ -404,6 +630,7 @@ def build_variables(args, blueprint: dict) -> dict:
     return {
         "PROJECT_ID": project_id,
         "PROJECT_NAME": args.name or project_dir.name,
+        "PROJECT_SLUG": _slugify(args.name or project_dir.name),
         "PROJECT_DESCRIPTION": args.description or "AI Native Project",
         "PROJECT_VERSION": "1.0.0",
         "CREATED_DATE": now.strftime("%Y-%m-%d"),
@@ -422,18 +649,32 @@ def build_variables(args, blueprint: dict) -> dict:
         "BLUEPRINT_TAGS": ", ".join(str(tag) for tag in blueprint.get("tags", [])),
 
         # Stack info
-        "FRONTEND_FRAMEWORK": stack.get("frontend", {}).get("framework", "unknown"),
-        "FRONTEND_LANGUAGE": stack.get("frontend", {}).get("language", "unknown"),
+        "FRONTEND_FRAMEWORK": frontend_stack.get("framework", "unknown"),
+        "FRONTEND_VERSION": frontend_stack.get("version", "latest"),
+        "FRONTEND_LANGUAGE": frontend_stack.get("language", "unknown"),
+        "FRONTEND_UI_LIBRARY": frontend_stack.get("ui_library", "none"),
+        "FRONTEND_STATE_MANAGEMENT": frontend_stack.get("state_management", "none"),
         "PRIMARY_LANGUAGE": primary_language,
-        "BACKEND_FRAMEWORK": stack.get("backend", {}).get("framework", "unknown"),
-        "BACKEND_LANGUAGE": stack.get("backend", {}).get("language", "unknown"),
+        "BACKEND_FRAMEWORK": backend_stack.get("framework", "unknown"),
+        "BACKEND_VERSION": backend_stack.get("version", "latest"),
+        "BACKEND_LANGUAGE": backend_stack.get("language", "unknown"),
+        "BACKEND_API_STYLE": backend_stack.get("api_style", "unknown"),
         "DATABASE_TYPE": database_type,
         "DATABASE_VERSION": database_version,
-        "ORM": stack.get("backend", {}).get("orm", "none"),
+        "DATABASE_PRODUCTION": database.get("production", "none"),
+        "ORM": backend_stack.get("orm", "none"),
+        "AI_SDK": ai_stack.get("sdk", "none"),
         "AUTH_PROVIDER": stack.get("auth", {}).get("provider", "none"),
-        "DEPLOYMENT_TYPE": stack.get("deployment", {}).get("type", "none"),
+        "DEPLOYMENT_TYPE": deployment_stack.get("type", "none"),
+        "DEPLOYMENT_PLATFORM": deployment_stack.get("platform", "none"),
         "PACKAGE_MANAGER": pm_name,
         "MONOREPO_TOOL": stack.get("monorepo", "none"),
+        "PROJECT_LAYOUT_TABLE": _project_layout_table(blueprint),
+        "PROJECT_LAYOUT_CONVENTIONS": _project_layout_conventions(blueprint),
+        "PROJECT_INSTALL_COMMAND": blueprint.get("commands", {}).get("install", "pnpm install"),
+        "PROJECT_DEV_COMMAND": blueprint.get("commands", {}).get("dev", "pnpm dev"),
+        "PROJECT_TEST_COMMAND": blueprint.get("commands", {}).get("test", "pnpm test"),
+        "PROJECT_SKILLS_SECTION": _recommended_skills_section(blueprint),
 
         # Architecture
         "ARCHITECTURE_STYLE": architecture_style,
@@ -451,6 +692,7 @@ def build_variables(args, blueprint: dict) -> dict:
         "CODING_CONVENTION_YAML": _coding_convention_yaml(primary_language),
         "ARCHITECTURE_BOUNDARIES": _architecture_boundaries(architecture_style),
         "ENGINEERING_PRACTICES": _engineering_practices(stack, primary_language),
+        "FRAMEWORK_CONSTRAINTS": _framework_constraints_markdown(stack),
 
         # Project state
         "IS_NEW_PROJECT": str(is_empty).lower(),
@@ -527,12 +769,121 @@ def generate_content_file(
     return output_path
 
 
-# ─── Bootstrap Manifest Generator ─────────────────────────────────────────────
+def _starter_dirs_from_blueprint(starter: dict) -> list[dict]:
+    """Resolve the list of {dir, target} starter specs from a blueprint."""
+    dirs = starter.get("template_dirs")
+    if isinstance(dirs, list) and dirs:
+        resolved = []
+        for entry in dirs:
+            if isinstance(entry, str) and entry:
+                resolved.append({"dir": entry, "target": ""})
+            elif isinstance(entry, dict) and entry.get("dir"):
+                resolved.append({"dir": entry["dir"], "target": entry.get("target") or ""})
+        if resolved:
+            return resolved
+    fallback = starter.get("template_dir") or "default"
+    return [{"dir": fallback, "target": ""}]
+
+
+def _copy_starter_directory(
+    project_path: Path,
+    template_dir: Path,
+    target_rel: str,
+    variables: dict,
+    args,
+    generated_files: list,
+) -> tuple[int, int]:
+    """Copy one starter directory into the project, rendering text templates."""
+    created = 0
+    skipped = 0
+    for src in sorted(template_dir.rglob("*")):
+        if src.is_dir():
+            continue
+        rel = src.relative_to(template_dir)
+        dst = project_path / target_rel / rel
+        if dst.exists() and not args.force:
+            print(f"  ⏭ Skipped existing starter file: {target_rel}/{rel}")
+            skipped += 1
+            continue
+        if args.dry_run:
+            print(f"  📄 Would create starter file: {target_rel}/{rel}")
+            created += 1
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if src.suffix.lower() in STARTER_TEXT_EXTENSIONS or src.name in STARTER_TEXT_FILENAMES:
+            rendered = render_template(src, variables)
+            dst.write_text(rendered, encoding="utf-8")
+        else:
+            dst.write_bytes(src.read_bytes())
+        print(f"  ✅ Created starter file: {target_rel}/{rel}")
+        created += 1
+        generated_files.append(str(dst))
+    return created, skipped
+
+
+def copy_starter_template(
+    project_path: Path,
+    blueprint: dict,
+    args,
+    generated_files: list,
+    is_new: bool,
+    variables: Optional[dict] = None,
+) -> None:
+    """Copy blueprint-declared starter baseline(s) into a new project.
+
+    Supports both the legacy single ``template_dir`` and the new multi-app
+    ``template_dirs`` list (each entry: {dir, target}), rendering text files
+    with ``{{VARIABLE}}`` substitution so monorepo + app templates can share
+    the project name/slug.
+    """
+    starter = blueprint.get("starter", {})
+    if not isinstance(starter, dict):
+        starter = {}
+
+    enabled = bool(starter.get("enabled", False))
+    if getattr(args, "starter", None) is True:
+        enabled = True
+    if getattr(args, "starter", None) is False:
+        enabled = False
+
+    if not enabled:
+        print("  ⏭ Starter baseline skipped (not enabled for this blueprint)")
+        return
+    if not is_new:
+        print("  ⏭ Starter baseline only applies to new projects")
+        return
+
+    specs = _starter_dirs_from_blueprint(starter)
+    label = "multi-app monorepo" if len(specs) > 1 else specs[0]["dir"]
+    print(f"  ── Basic Feature Starter ({label}) ──")
+
+    total_created = 0
+    total_skipped = 0
+    for spec in specs:
+        template_dir = STARTER_TEMPLATES_DIR / spec["dir"]
+        if not template_dir.is_dir():
+            print(f"  ⚠ Starter template directory not found: {template_dir}")
+            continue
+        created, skipped = _copy_starter_directory(
+            project_path, template_dir, spec["target"], variables or {}, args, generated_files
+        )
+        total_created += created
+        total_skipped += skipped
+
+    if args.dry_run:
+        print(f"  📋 Starter dry-run: {total_created} files would be copied.")
+    else:
+        print(f"  ✅ Starter baseline complete: {total_created} created, {total_skipped} skipped.")
+
 
 def generate_manifest(
     args, blueprint: dict, generated_files: list, variables: dict, resolved_from: str
 ) -> dict:
     """Generate the bootstrap manifest."""
+    starter = blueprint.get("starter", {})
+    if not isinstance(starter, dict):
+        starter = {}
+
     return {
         "manifest": {
             "bootstrap_version": BOOTSTRAP_VERSION,
@@ -547,6 +898,14 @@ def generate_manifest(
                 "version": blueprint.get("version", "1.0.0"),
                 "resolved_from": resolved_from,
             },
+            "starter": {
+                "enabled": bool(starter.get("enabled", False)),
+                "mode": starter.get("mode", "none"),
+                "template_dir": starter.get("template_dir", "none"),
+                "template_dirs": _starter_dirs_from_blueprint(starter),
+                "features": starter.get("features", []),
+            },
+            "apps": blueprint.get("apps", []),
             "governance": {
                 "files_generated": len(generated_files),
                 "agents_configured": variables["AGENT_COUNT"],
@@ -648,6 +1007,14 @@ def generate(args) -> list:
     gen = generate_file("DESIGN.md", out / DESIGN_PATH, variables, args.dry_run, force)
     if gen:
         generated_files.append(str(gen))
+    gen = generate_content_file(
+        out / DESIGN_TOKEN_SPEC_PATH,
+        _design_token_spec(blueprint, variables),
+        args.dry_run,
+        force,
+    )
+    if gen:
+        generated_files.append(str(gen))
     gen = generate_file("MEMORY.md", out / MEMORY_PATH, variables, args.dry_run, force)
     if gen:
         generated_files.append(str(gen))
@@ -716,6 +1083,9 @@ def generate(args) -> list:
         if gen:
             generated_files.append(str(gen))
 
+    # ─── Generate Basic Feature Starter (new projects only) ───
+    copy_starter_template(project_path, blueprint, args, generated_files, is_new, variables)
+
     # ─── Generate Bootstrap Manifest ───
     manifest_path = out / MANIFEST_PATH
     manifest = generate_manifest(
@@ -770,6 +1140,19 @@ Examples:
     parser.add_argument("--platform", help="Primary AI platform (codex, claude-code, cursor, trae, windsurf, gemini)")
     parser.add_argument("--dry-run", action="store_true", help="Preview only, no file writes")
     parser.add_argument("--force", action="store_true", help="Overwrite existing generated files")
+    parser.add_argument(
+        "--starter",
+        dest="starter",
+        action="store_true",
+        default=None,
+        help="Force basic feature starter generation (default: blueprint-driven)",
+    )
+    parser.add_argument(
+        "--no-starter",
+        dest="starter",
+        action="store_false",
+        help="Disable basic feature starter generation",
+    )
     args = parser.parse_args()
 
     generate(args)

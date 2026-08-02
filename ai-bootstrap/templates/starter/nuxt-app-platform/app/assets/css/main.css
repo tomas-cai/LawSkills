@@ -1,0 +1,38 @@
+/* {{PROJECT_NAME}} 设计令牌 —— Nuxt UI v4 / Tailwind v4 官方范式
+ * 语义色映射在 app/app.config.ts 的 ui.colors 中声明；
+ * 品牌色阶在此 @theme static 中注册（--color-brand-* / --color-accent-* 全色阶）；
+ * 组件内只使用 bg-primary / text-muted / border-default 等语义工具类，禁止散落 hex。
+ */
+@import "tailwindcss" theme(static);
+@import "@nuxt/ui";
+@import '@fontsource-variable/inter';
+
+@theme static {
+  --font-sans: 'Inter Variable', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, sans-serif;
+
+  /* brand（主色，indigo 系） */
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+  --color-brand-950: #1e1b4b;
+
+  /* accent（强调色，teal 系） */
+  --color-accent-50: #f0fdfa;
+  --color-accent-100: #ccfbf1;
+  --color-accent-200: #99f6e4;
+  --color-accent-300: #5eead4;
+  --color-accent-400: #2dd4bf;
+  --color-accent-500: #14b8a6;
+  --color-accent-600: #0f9f9a;
+  --color-accent-700: #0d8378;
+  --color-accent-800: #115e59;
+  --color-accent-900: #134e4a;
+  --color-accent-950: #042f2e;
+}

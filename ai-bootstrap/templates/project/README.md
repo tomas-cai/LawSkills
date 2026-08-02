@@ -8,38 +8,47 @@
 
 | 层次 | 技术 |
 |------|------|
-| 前端 | {{FRONTEND_FRAMEWORK}} |
-| 后端 | {{BACKEND_FRAMEWORK}} |
+| 前端 | {{FRONTEND_FRAMEWORK}} {{FRONTEND_VERSION}} |
+| UI 库 | {{FRONTEND_UI_LIBRARY}} |
+| 后端 | {{BACKEND_FRAMEWORK}} {{BACKEND_VERSION}} |
+| AI SDK | {{AI_SDK}} |
 | 数据库 | {{DATABASE_TYPE}} |
-| 部署 | {{DEPLOYMENT_TYPE}} |
+| 生产数据库 | {{DATABASE_PRODUCTION}} |
+| 部署 | {{DEPLOYMENT_PLATFORM}} |
+
+设计令牌与主题入口见 [`docs/00-research/design-token-spec.md`](docs/00-research/design-token-spec.md)。
 
 ## 快速开始
 
 ```bash
 # 安装依赖
-{{PACKAGE_MANAGER}} install
+{{PROJECT_INSTALL_COMMAND}}
 
 # 启动开发服务器
-{{PACKAGE_MANAGER}} dev
+{{PROJECT_DEV_COMMAND}}
+
+# 运行测试
+{{PROJECT_TEST_COMMAND}}
 ```
+
+{{PROJECT_SKILLS_SECTION}}
 
 ## 项目结构
 
-```
+治理层保持统一：
+
+```text
 ├── AGENTS.md              # AI Agent 路由
 ├── docs/                  # SDD 与工程治理文档
-│   ├── 00-research/       # 调研
-│   ├── 01-requirements/   # 需求
-│   ├── 02-specs/          # 规格
-│   ├── 03-plans/          # 计划与任务
-│   ├── 04-reviews/        # 审查
-│   ├── 05-verification/   # 验证
-│   ├── 06-decisions/      # ADR 与决策记录
-│   ├── DESIGN.md          # 设计文档
-│   └── PROJECT_PROFILE.md # 项目 DNA
 ├── .ai-bootstrap/         # Bootstrap 元数据
-└── src/                   # 源代码
+└── 应用源码                # 按技术栈官方约定组织
 ```
+
+应用源码目录：
+
+{{PROJECT_LAYOUT_TABLE}}
+
+{{PROJECT_LAYOUT_CONVENTIONS}}
 
 ## 治理
 

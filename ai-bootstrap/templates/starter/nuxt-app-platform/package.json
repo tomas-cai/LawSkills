@@ -1,0 +1,33 @@
+{
+  "name": "@{{PROJECT_SLUG}}/web-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "{{PROJECT_NAME}} 平台运营管理后台（Nuxt 4 + Nuxt UI）",
+  "scripts": {
+    "dev": "nuxt dev --port 3002",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.2.0",
+    "@iconify-json/lucide": "^1.2.0",
+    "@nuxt/icon": "^2.4.0",
+    "@nuxt/ui": "^4.0.0",
+    "@pinia/nuxt": "^0.11.0",
+    "nuxt": "^4.0.0",
+    "pinia": "^3.0.0",
+    "tailwindcss": "^4.3.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0",
+    "vue-tsc": "^3.3.9"
+  }
+}

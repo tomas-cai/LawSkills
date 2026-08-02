@@ -1,0 +1,23 @@
+{
+  "name": "@{{PROJECT_SLUG}}/web-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "{{PROJECT_NAME}} 后端 API 服务（Nitro 2 standalone，Node TS）",
+  "scripts": {
+    "dev": "nitro dev --port 3100",
+    "build": "nitro build",
+    "preview": "node .output/server/index.mjs",
+    "start": "node .output/server/index.mjs",
+    "typecheck": "nitro prepare && tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "nitropack": "^2.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

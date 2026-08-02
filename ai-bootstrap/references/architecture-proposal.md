@@ -90,6 +90,14 @@ architecture:
 
 The generated profile must preserve the Blueprint's frontend, backend and database values. It must select a meaningful primary language: frontend language when present, otherwise backend language.
 
+### 5.1 Directory layout contract
+
+Every Blueprint declares `layout` with `source_root`, `key_dirs` and `conventions`. The declared layout must follow the corresponding stack's official conventions rather than inventing a universal `src/` structure. `generate.py` renders the layout into `README.md`, `DESIGN.md` and `PROJECT_PROFILE.md`; validation checks that the documented layout is consistent with the Blueprint, not that every source directory already exists.
+
+### 5.2 Recommended AI skills
+
+Blueprints may declare `skills` for stacks with official AI skills (for example Nuxt UI's `/nuxt-ui` skill installed via `npx skills add nuxt/ui`). `generate.py` renders recommended skills into `AGENTS.md`, `README.md` and `PROJECT_PROFILE.md` so agents and humans install the same skill consistently.
+
 ## 6. Multi-Agent contract
 
 The --agents argument defines the complete participating Agent set. The same set must be represented in both:
@@ -108,6 +116,8 @@ docs/03-plans/current.md
 ## 7. Validation contract
 
 Validation success means the required governance structure is present and machine-parseable. It does not prove application code correctness.
+
+For new projects with a runnable starter, completion additionally requires typecheck/build and a smoke test of the started services so the user receives a working URL, not only governance files.
 
 The test suite must cover:
 

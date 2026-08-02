@@ -1,5 +1,6 @@
 ---
 name: ai-bootstrap
+version: "1.6.0"
 description: >
   AI Native Engineering Bootstrap System.
   为 AI 建立长期、统一、可治理的软件工程上下文。
@@ -8,6 +9,7 @@ description: >
   或在 AI Agent 开始工作前统一上下文时触发。
   也可在已部分初始化的项目基础上从中段执行（如已有项目检测 → 生成治理）。
   特别适配多 Agent 协作场景（Codex / Claude Code / Cursor / Trae / Windsurf / Gemini CLI）。
+  并按所选前端 UI 组件库的官方范式生成基础样式令牌、依赖与设计指导，落地为可运行的瘦 DEMO。
 ---
 
 # AI Bootstrap Skill — AI Native Engineering Bootstrap System
@@ -23,6 +25,75 @@ description: >
 - **Detection Before Questions**: 能自动检测的，绝不询问用户
 - **Governance Over Scaffolding**: 治理体系优于代码模板
 - **Multi-Agent Native**: 从第一天起支持多 Agent 协作
+
+## 前端 Mock 与真实 API 的数据边界
+
+当项目包含前端并预计接入后端 API 时，默认采用“轻量 port/adapter”边界：
+
+```text
+页面 / 组件 → composable 或 feature service → feature-specific port
+                                      ├─ Mock adapter
+                                      └─ API adapter
+```
+
+- 页面和组件只负责渲染、输入绑定和局部视图状态，不直接持有 mock 数据或 HTTP 细节。
+- 先定义领域类型和用户操作接口，再用 Mock adapter 支撑交互验证，之后替换为 API adapter。
+- Mock 与 API 必须实现同一套领域操作；Mock 应模拟加载、失败、ID、延迟和状态迁移，而不是只提供静态数组。
+- 对一次性静态展示、没有持久化、权限、审核状态或异步流程的原型，可允许页面级 mock。
+- 不因 mock/API 切换引入通用 Repository 框架、全局数据层或复杂依赖注入；接口应按业务功能保持小而具体。
+
+## 基础功能基线（Basic Feature Baseline）
+
+新项目 Bootstrap 默认携带一份可运行的“基础功能基线”，先保证业务演示链路完整，再按产品域增删：
+
+- **JWT + author 鉴权（mock-first）**: 登录、注册、当前用户、退出；默认 `author` 角色；前端路由守卫；后续可切换为真实 JWT API（HttpOnly Cookie + Bearer）。
+- **项目新建 / 编辑（mock-first）**: 客户项目列表、新建、编辑；Mock adapter 模拟加载、失败、ID 和状态迁移，切换 API 时保持同一 port 契约。
+- 实现边界沿用上面的 Mock/API 双 adapter 规则：页面 → composable → port（Mock adapter / API adapter）。
+- 若 Blueprint 声明 `starter`，`generate.py` 在全新项目生成时自动复制 `templates/starter/` 下的基线模板：单应用用 `template_dir`，多应用单仓用 `template_dirs`（复制根 + 各 `apps/<id>/` 目录），`.vue/.ts/.js/.json/.md/.yaml/.css` 等文本文件复制时渲染 `{{VARIABLE}}`；用 `--no-starter` 可关闭，`--starter` 可强制开启。
+- 多应用单仓（`monorepo: turbo`）默认生成：pnpm workspace + Turborepo 根、Nuxt 4 前台/后台（DEMO 视觉基线：主题入口、字体插件、布局、核心组件、种子数据）、Nitro standalone API。**Nitro ≥2.13 的路由放在根级 `routes/` 与 `routes/api/`，不再自动扫描 `server/`**。
+- **UI 栈官方范式（ui-stack-conformance）**: Nuxt UI 系 starter 按 Nuxt UI v4 / Tailwind v4 官方模板（dashboard/chat）范式初始化：`main.css` 使用 `@import "tailwindcss" theme(static)` + `@import "@nuxt/ui"` + `@theme static` 注册品牌全色阶；`app.config.ts` 声明 `ui.colors` 语义色映射（primary/secondary/accent/...）；`nuxt.config.ts` 注册 `ui.theme.colors`；依赖补齐 `tailwindcss` 与 `@iconify-json/*` 图标集；页面组件只使用 `bg-primary` / `text-muted` / `border-default` 等语义工具类，并标配 `app/error.vue`（UApp + UError）。`validate.py` 的 `ui-stack-conformance` 校验会自动拦截偏离官方范式的生成品（遗留 `--mc-*` 令牌、缺失 tailwindcss、未接入 `@nuxt/ui` 等）。
+- 升级到真实 API 的路径见 `references/basic-feature-baseline.md`。
+
+已在 `nuxt-ai-fullstack` Blueprint 中内置 `multi-app-monorepo`、`jwt + author`、`project-create-edit` 与 `demo-visual-baseline` 基线。
+
+## 技术选型交互契约（必须遵守）
+
+初始化新项目时，技术栈选择不是隐含推断，也不是直接套用默认 Blueprint，而是一次明确的“方案选择 → 用户确认 → 生成”交互。
+
+### 用户未给出明确技术栈时
+
+1. 先检测目录和运行环境；检测结果只能用于缩小范围，不能替代产品级选型。
+2. 展示 `references/stack-presets.md` 中的典型方案卡片，至少包含：适用场景、完整技术组合、优势、代价、迁移触发条件。
+3. 至少询问五个问题：
+   - 目标端是 PC、H5、小程序还是 App？移动端是否接受独立 uni-app 应用？
+   - 第一版更看重 AI 原生、Demo 速度、企业级扩展，还是模型/数据能力？
+   - 是否希望前后端统一语言？
+   - 预计本地部署、Vercel/Serverless，还是 Docker/云服务器？
+   - 是否同时需要独立管理后台 / PC Web？如果需要，作为独立应用单独选型。
+4. 给出一个推荐方案和至少一个替代方案，并明确推荐理由与主要代价。
+5. 复述完整组合：每个前端应用独立列出框架及版本、UI 库、样式库、后端/API、AI SDK、数据库（本地与生产）、ORM、部署平台、包管理器。
+6. 若包含前端，确认摘要必须同时展示：样式方案、图标方案、官方主题入口和设计令牌实现入口。
+7. 在用户确认前，不得运行正式生成，不得创建或修改治理文件和项目代码。
+
+### 用户已给出技术栈时
+
+仍需把技术栈整理成完整方案并复述确认；只有用户明确使用 `--blueprint` 或明确说“按此方案直接生成”时，才可跳过再次询问。缺失的版本、生产数据库或部署信息应标为假设，并在确认摘要中指出。
+
+### 多应用与移动端选型原则
+
+- PC 与移动端默认是两个独立应用，不强制 PC + H5 共用一套前端；只有产品明确是轻量响应式页面时才允许合并。
+- 每个应用独立选择 UI 库和样式库；共享产品级语义令牌，但不共享实现入口。
+- 移动端首选 `uni-app-nitro`（uni-app + Vue3 + uni-ui + Nitro），一次开发覆盖 H5、小程序和 App；React 团队可选用 Taro + React + Ant Design Mobile。
+- Blueprint 的主 `design_system` 描述主应用；多应用项目在 `stack-decision.md` 和 `design-token-spec.md` 中按应用分别声明。
+
+### 默认优先级
+
+- AI 相关功能：优先使用 `nuxt-ai-fullstack`（Nuxt 4 + Nitro + SQLite/Turso + Drizzle + Vercel AI SDK）。
+- 企业级系统：优先使用 `react-springboot`（React + Spring Boot + PostgreSQL/MySQL）。
+
+### 确认后的持久化要求
+
+生成成功后，必须写入 `docs/00-research/stack-decision.md` 和 `docs/00-research/design-token-spec.md`。前者记录选择来源、Blueprint、每个应用的完整组合、理由、代价和未来迁移触发条件；后者记录共享语义令牌，以及每个应用独立的主题入口、UI 库、样式库、组件基线和首屏验收标准。已有文件不得覆盖；变更应追加新决策或进入 ADR。
 
 ## 生命周期
 
@@ -46,9 +117,10 @@ Detect ──▶ Analyze ──▶ Resolve ──▶ Generate ──▶ Verify �
 1. 询问项目名称、描述
 2. 运行 detect.py 检测环境（Node.js / Python / Go / Rust 等）
 3. 根据检测结果推荐 Blueprint
-4. 运行 Wizard（仅询问无法检测的信息）
-5. 运行 generate.py 生成治理文件 + 项目骨架
-6. 运行 validate.py 自检验证
+4. 运行 Wizard（展示典型方案并完成技术选型确认）
+5. 在技术栈确认后，先确定设计令牌基线和实现入口
+6. 运行 generate.py 生成治理文件 + 设计令牌规范 + 项目骨架
+7. 运行 validate.py 自检验证
 ```
 
 ### 模式 2: 现有项目注入治理（从检测开始）
@@ -59,8 +131,10 @@ Detect ──▶ Analyze ──▶ Resolve ──▶ Generate ──▶ Verify �
 1. 运行 detect.py 检测已有项目
 2. 自动识别技术栈、框架、架构
 3. 匹配最接近的 Blueprint
-4. 生成治理文件（不覆盖现有代码）
-5. 验证兼容性
+4. 复述检测到的技术栈；如存在关键缺口，展示典型方案并确认补充决策
+5. 对已有前端读取其主题入口；缺失时补充设计令牌基线，但不覆盖现有代码
+6. 生成治理文件和设计令牌规范（不覆盖现有代码）
+7. 验证兼容性
 ```
 
 ### 模式 3: 快速 Blueprint（从蓝图开始）
@@ -71,7 +145,9 @@ Detect ──▶ Analyze ──▶ Resolve ──▶ Generate ──▶ Verify �
 1. 用户指定 Blueprint ID
 2. 加载 Blueprint 定义
 3. 询问项目名称、描述等基本信息
-4. 生成治理文件 + 项目骨架
+4. 复述 Blueprint 完整技术组合并确认
+5. 确认前端主题入口和设计令牌基线
+6. 生成治理文件 + 设计令牌规范 + 项目骨架
 ```
 
 ### 进度判定规则
@@ -91,6 +167,9 @@ Detect ──▶ Analyze ──▶ Resolve ──▶ Generate ──▶ Verify �
 | `scripts/wizard.py` | 交互式 Blueprint 选择与参数收集 | `python3 <skill-dir>/scripts/wizard.py --dir /path/to/project` |
 | `scripts/generate.py` | 生成治理文件 + 项目骨架 | `python3 <skill-dir>/scripts/generate.py --dir /path/to/project --blueprint <id>` |
 | `scripts/validate.py` | 自检验证 | `python3 <skill-dir>/scripts/validate.py --dir /path/to/project` |
+| `scripts/smoke.py` | 运行时冒烟检查（启动后验证各应用端口可访问） | `python3 <skill-dir>/scripts/smoke.py --dir /path/to/project` |
+
+设计令牌规范由 `generate.py` 持久化为 `docs/00-research/design-token-spec.md`；通用规则和技术栈映射见 `references/design-token-guide.md`。
 
 ### detect.py 参数
 
@@ -135,8 +214,19 @@ Detect ──▶ Analyze ──▶ Resolve ──▶ Generate ──▶ Verify �
 | `templates/governance/ADR-TEMPLATE.md` | ADR 模板 | 所有项目 |
 | `templates/project/README.md` | 项目 README | 全新项目 |
 | `templates/project/.gitignore` | Git 忽略规则 | 全新项目 |
+| `templates/starter/nuxt-basic-auth/` | 单前端基础功能基线（mock-first JWT/author 鉴权 + 项目新建/编辑） | 全新 Nuxt 单应用 |
+| `templates/starter/nuxt-monorepo-root/` | 多应用单仓根（pnpm workspace + Turborepo + tsconfig.base） | nuxt-ai-fullstack 根 |
+| `templates/starter/nuxt-app-hr/` | HR 前台 DEMO 视觉基线（主题/字体/布局/组件/种子岗位） | nuxt-ai-fullstack 的 app-web-hr |
+| `templates/starter/nuxt-app-platform/` | 运营后台 DEMO 视觉基线（侧边栏 + 指标卡 + 动态列表） | nuxt-ai-fullstack 的 app-web-platform |
+| `templates/starter/nitro-server-standalone/` | Nitro standalone API（根级 routes/、健康检查、品牌欢迎页） | nuxt-ai-fullstack 的 app-web-server |
 | `templates/blueprints/` | Blueprint 定义文件 | 按需加载 |
 | `templates/prompt/bootstrap-complete.md` | Bootstrap 完成提示 | 流程完成 |
+
+## 推荐 AI 技能
+
+- Blueprint 可通过 `skills` 字段声明官方对口 AI Skill，例如 Nuxt UI 官方技能：`npx skills add nuxt/ui`，调用方式 `/nuxt-ui`。
+- 生成器会把推荐技能写入 `AGENTS.md`、`README.md` 和 `PROJECT_PROFILE.md`，让 Agent 与人类开发者都知道如何安装和调用。
+- 安装命令、触发词和文档链接以技术栈官方文档为准；未提供官方 Skill 的 Blueprint 不声明该字段。
 
 ## Blueprint 定义
 
@@ -146,10 +236,13 @@ Blueprint 定义在 `templates/blueprints/` 目录下，每个 Blueprint 一个�
 
 - `next-fullstack.yaml` — Next.js + NestJS + PostgreSQL + DDD 架构
 - `react-fastapi.yaml` — React + FastAPI + PostgreSQL
+- `react-springboot.yaml` — React + Spring Boot + PostgreSQL/MySQL
 - `vue-django.yaml` — Vue + Django + PostgreSQL
 - `go-microservice.yaml` — Go + Gin + PostgreSQL + gRPC
 - `rust-axum-api.yaml` — Rust + Axum + SQLite
 - `python-ml-service.yaml` — Python + FastAPI + PyTorch
+- `nuxt-ai-fullstack.yaml` — Nuxt 4 + Nuxt UI + Nitro + Vercel AI SDK + SQLite/Turso + Drizzle
+- `uni-app-nitro.yaml` — uni-app + Vue3 + uni-ui + Nitro + SQLite/Turso + Vercel AI SDK
 
 ### Blueprint 格式
 
@@ -173,7 +266,45 @@ stack:
 architecture:
   style: ddd
   pattern: modular-monolith
+
+layout:
+  source_root: src/
+  key_dirs:
+    src/: "应用源码"
+  conventions: "遵循对应技术栈官方目录约定"
+
+commands:
+  install: "pnpm install"
+  dev: "pnpm dev"
+  test: "pnpm test"
 ```
+
+### starter 字段（可选）
+
+Blueprint 可通过 `starter` 声明是否在全新项目生成时复制基础功能基线：
+
+```yaml
+starter:
+  enabled: true
+  mode: mock-first
+  monorepo_dir: nuxt-monorepo-root
+  template_dirs:
+    - dir: nuxt-monorepo-root
+      target: ""
+    - dir: nuxt-app-hr
+      target: apps/app-web-hr
+  features:
+    - jwt-author-auth
+    - project-create-edit
+```
+
+- `enabled`: 是否默认启用。
+- `mode`: `mock-first` 或 `api`。
+- `template_dir`: 单应用场景：`templates/starter/` 下的子目录名，文本文件按原样复制。
+- `template_dirs`: 多应用单仓场景：`{dir, target}` 列表，`dir` 是 `templates/starter/` 下的子目录，`target` 是复制到项目里的相对路径（如 `apps/app-web-hr`）；`.vue/.ts/.js/.json/.md/.yaml/.css` 等文本文件复制时渲染 `{{VARIABLE}}`（如 `{{PROJECT_NAME}}`、`{{PROJECT_SLUG}}`）。
+- `monorepo_dir`: 多应用根目录模板（pnpm workspace + Turborepo）。
+- `features`: 基础功能清单，用于生成说明与 manifest。
+- Blueprint 还可声明 `apps:` 列表（`id/name/kind/port/starter_dir/checks`）；`generate.py` 会把它写入 manifest，`smoke.py` 据此探测各应用端口。
 
 ## 输出物（治理文件）
 
@@ -188,7 +319,7 @@ project/
 │   ├── PROJECT_PROFILE.md            # 项目 DNA（唯一事实来源）
 │   ├── DESIGN.md                     # 设计文档 + 架构约束
 │   ├── ai/MEMORY.md                  # AI 记忆与协作状态
-│   ├── 00-research/                  # 调研
+│   ├── 00-research/                  # 调研 + stack-decision.md + design-token-spec.md
 │   ├── 01-requirements/              # 需求
 │   ├── 02-specs/                     # 规格
 │   ├── 03-plans/                     # 实施计划、current.md、backlog.md
@@ -205,12 +336,24 @@ project/
 
 `ADR` 是 Architecture Decision Record（架构决策记录）：它记录重要架构选择的背景、备选方案、最终决策和后果。只有影响系统结构、技术边界或长期演进的决策进入 ADR；一般的产品或实施取舍记录在 `docs/06-decisions/decisions/`。
 
+## 目录结构处理原则
+
+- 顶层治理结构（`AGENTS.md`、`docs/`、`.ai-bootstrap/`）在所有 Blueprint 间保持统一。
+- 应用源码目录按 Blueprint 的 `layout` 声明，必须遵循对应技术栈的官方约定，不自行发明结构。
+- `generate.py` 会把 `layout` 渲染到 `README.md`、`DESIGN.md` 和 `PROJECT_PROFILE.md`，让 Agent 直接看到该栈的目录契约。
+- 新项目按官方约定生成骨架；现有项目不强制重构，`detect.py` 记录实际结构，AI 按现状工作。
+- 多应用项目每个 app 独立声明 `layout`，不共用一套源码结构。
+- Nitro standalone（≥2.13）路由放应用根级 `routes/` 与 `routes/api/`；`server/` 不再被自动扫描，存量项目按此迁移。
+- 生成器自带“DEMO 视觉基线”概念：主题入口（app.config.ts）、全局令牌 CSS、字体插件、布局与核心组件（AppLogo/AppHeader/AppSidebar/StatCard/EmptyState）随 starter 一起落地，避免页面停留在“无样式的功能基线”。
+
 ## 参考文件索引
 
 | 文件 | 何时读 | 用途 |
 |------|--------|------|
-| `references/architecture-proposal.md` | 首次使用 | 完整的架构设计蓝图（18 章） |
+| `references/architecture-proposal.md` | 首次使用 | 架构设计蓝图（架构契约与演进约束） |
 | `references/blueprint-guide.md` | 创建 Blueprint 时 | Blueprint 开发规范 |
+| `references/stack-presets.md` | 新项目选型时 | 典型技术方案、取舍与迁移触发条件 |
+| `references/design-token-guide.md` | 技术栈确认后、生成前 | 设计令牌层次、主题入口和组件基线 |
 
 ## 工作流（Codex 执行流程）
 
@@ -243,13 +386,21 @@ python3 <skill-dir>/scripts/detect.py --dir /path/to/project
 
 - 检测到 `package.json` + `next` 依赖 → 推荐 next-fullstack
 - 检测到 `package.json` + `react` + `pyproject.toml` + `fastapi` → 推荐 react-fastapi
+- 检测到 Java + Spring Boot → 推荐 react-springboot
+- 目标端包含 H5/小程序/App → 移动端推荐独立 uni-app 应用，不强制与 PC 共用前端
 - 用户明确指定 → 确认后使用
 
-如无匹配或用户需要自定义，询问关键技术选择：
-- 前端框架
-- 后端框架
-- 数据库
-- 架构风格
+对于空目录或技术栈不明确的项目，先读取 `references/stack-presets.md`，并按“技术选型交互契约”完成：
+
+- 询问 AI 原生 / Demo / 企业 / 模型数据优先级
+- 询问前后端是否统一语言
+- 询问本地 / Vercel / Docker 部署目标
+- 展示推荐方案、至少一个替代方案、完整技术组合、优点和代价
+- 等用户确认后再确定 Blueprint
+
+若 Blueprint 包含前端，在生成前读取 `references/design-token-guide.md`，检查 Blueprint 的 `design_system` 字段，并将其落实为设计令牌规范。不得把 Nuxt UI、shadcn、Naive UI 或其他 UI 库的默认主题直接当作产品最终视觉系统。
+
+如用户提出自定义技术栈，先将其归并成一个临时方案摘要；不得因为用户说了某个框架就自行补齐未确认的数据库、部署或 AI SDK。
 
 #### Step 4: 生成治理文件（核心）
 
@@ -263,7 +414,11 @@ python3 <skill-dir>/scripts/generate.py \
   --platform codex
 ```
 
+如果 Blueprint 声明 `starter`（如 `nuxt-ai-fullstack`），生成器会自动复制基础功能基线（mock-first JWT/author 鉴权 + 项目新建/编辑）；需要跳过时使用 `--no-starter`。多应用单仓（`monorepo: turbo`）会先复制 monorepo 根模板，再按 `apps:` 声明把各应用模板复制到 `apps/<id>/`；`{{PROJECT_SLUG}}`/`{{PROJECT_NAME}}` 等变量在复制时渲染进文本文件。
+
 如果用户指定 `--dry-run`，先预览再确认。
+
+正式生成后，补写 `docs/00-research/stack-decision.md`，并把该文件纳入生成清单；同时生成 `docs/00-research/design-token-spec.md`。已有设计文件默认跳过，不能覆盖用户已有的设计决策。
 
 #### Step 5: 验证
 
@@ -276,12 +431,18 @@ python3 <skill-dir>/scripts/validate.py --dir /path/to/project
 - warning → 列出警告项，建议修复
 - failed → 修复问题后重新验证
 
+全新项目如果包含 starter 或可运行骨架，还必须执行类型检查、构建和冒烟测试：
+1. `pnpm install` → `pnpm typecheck` → `pnpm build`；
+2. 启动各应用后运行 `python3 <skill-dir>/scripts/smoke.py --dir /path/to/project`，确认每个端口返回 2xx/3xx；
+3. 把每个可访问 URL 写进完成总结；拿不到可访问 URL 不算完成。
+
 #### Step 6: 完成
 
 向用户提供：
 1. Bootstrap Summary（生成的文件清单）
 2. 项目上下文摘要（技术栈、Agent 角色、架构风格）
-3. 下一步建议（"现在可以用 Codex 开始开发了"）
+3. 各应用可访问 URL 与冒烟结果（前台/后台/API 的端口与 HTTP 状态）
+4. 下一步建议（"现在可以用 Codex 开始开发了"）
 
 ### 现有项目注入流程
 
@@ -324,12 +485,25 @@ Bootstrap 完成后，确保以下内容正确：
 - [ ] docs/DESIGN.md 包含架构设计和约束
 - [ ] docs/ai/MEMORY.md 已初始化
 - [ ] docs/00-research 至 docs/06-decisions 阶段目录已创建
+- [ ] docs/00-research/stack-decision.md 记录了用户确认的完整技术组合
+- [ ] docs/00-research/design-token-spec.md 存在，并声明前端/UI 库的主题入口和语义令牌
+- [ ] 多应用项目：stack-decision.md 记录每个应用独立组合，design-token-spec.md 为每个应用声明独立 UI/样式库与主题入口
+- [ ] README.md、DESIGN.md 和 PROJECT_PROFILE.md 已按 Blueprint `layout` 声明应用源码目录，且符合技术栈官方约定
 - [ ] docs/06-decisions/adr/ 包含 ADR 索引和初始 ADR
 - [ ] docs/03-plans/ 包含 current.md
 - [ ] docs/04-reviews/ 包含 INDEX.md
 - [ ] Blueprint 声明的技术栈与生成的治理文件一致
+- [ ] 若 Blueprint 声明 starter，生成项目包含对应基础功能基线文件（mock-first），且 Markdown 中无未渲染模板标记
+- [ ] PROJECT_PROFILE.md 和 README.md 包含 UI 库、AI SDK、生产数据库和部署平台
+- [ ] 前端首屏实现消费设计令牌，不直接复制 UI 库默认主题或散落颜色值
 - [ ] 对现有项目，未覆盖任何已有代码
 - [ ] 对现有治理文件默认跳过，只有 `--force` 才覆盖
 - [ ] dry-run 模式不产生实际写入
 - [ ] 生成文件不包含未渲染模板标记
 - [ ] .ai-bootstrap/bootstrap-manifest.yaml 已生成
+- [ ] 全新项目含可运行骨架时，已执行类型检查、构建和冒烟测试，能给出可访问 URL
+- [ ] Nitro standalone 应用使用根级 `routes/`/`routes/api/`（validate.py `nitro-route-layout`）
+- [ ] Nuxt 应用具备 DEMO 视觉基线：主题入口、字体插件、令牌 CSS、布局、EmptyState（validate.py `demo-visual-baseline`）
+- [ ] 有构建产物时包含 Nitro 路由 chunk / Nuxt output（validate.py `build-artifacts`）
+- [ ] 冒烟测试通过：每个应用端口返回 2xx/3xx（smoke.py）
+- [ ] 完成总结给出每个应用的访问 URL 与冒烟结果

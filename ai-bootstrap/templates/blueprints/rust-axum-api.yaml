@@ -39,6 +39,27 @@ stack:
   package_manager: cargo
   monorepo: cargo-workspace
 
+design_system:
+  status: not-applicable
+  rationale: no frontend is included in this Blueprint
+
 architecture:
   style: layered
   pattern: modular-monolith
+
+layout:
+  source_root: src/
+  key_dirs:
+    src/: "Cargo 官方源码目录"
+    src/main.rs: "二进制入口"
+    src/routes/: "Axum 路由模块"
+    src/handlers/: "请求处理器"
+    src/models/: "数据模型"
+    src/db/: "SQLite 连接与迁移"
+    migrations/: "数据库迁移文件"
+  conventions: "遵循 Cargo 官方约定：src/main.rs 为入口；模块按 routes/handlers/models/db 组织。"
+
+commands:
+  install: "cargo build"
+  dev: "cargo run"
+  test: "cargo test"

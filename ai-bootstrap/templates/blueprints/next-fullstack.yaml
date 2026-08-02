@@ -42,6 +42,35 @@ stack:
   package_manager: pnpm
   monorepo: turbo
 
+design_system:
+  status: required
+  ui_library: shadcn
+  styling: tailwind-css
+  icon_library: lucide-react
+  color_mode: light-dark
+  token_preset: ink-indigo
+  theme_entry:
+    framework: apps/web/src/app/layout.tsx
+    global_tokens: apps/web/src/app/globals.css
+    components: apps/web/components/ui variants + semantic Tailwind mappings
+  component_baseline: [button, input, card, badge, navigation, dialog, table/list, empty/error]
+
 architecture:
   style: ddd
   pattern: modular-monolith
+
+layout:
+  source_root: apps/
+  key_dirs:
+    apps/web/: "Next.js 前端应用"
+    apps/web/app/: "Next.js App Router 页面与路由"
+    apps/web/components/: "React 组件"
+    apps/web/public/: "公共静态资源"
+    apps/api/: "NestJS 后端服务"
+    apps/api/src/: "NestJS 模块、控制器与服务"
+  conventions: "遵循 Turborepo 官方 monorepo 约定与 Next.js App Router 约定；前端 apps/web，后端 apps/api。"
+
+commands:
+  install: "pnpm install"
+  dev: "pnpm dev"
+  test: "pnpm test"

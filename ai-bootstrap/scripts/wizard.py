@@ -19,6 +19,7 @@ import subprocess
 import sys
 import re as regex_module
 import shutil as shutil_module
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -30,7 +31,7 @@ from yaml_utils import load_yaml
 SKILL_DIR = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = SKILL_DIR / "scripts"
 BLUEPRINTS_DIR = SKILL_DIR / "templates" / "blueprints"
-BOOTSTRAP_VERSION = "1.0.0"
+BOOTSTRAP_VERSION = "1.1.0"
 
 
 # ─── ANSI Color Helpers ───────────────────────────────────────────────────────
@@ -161,7 +162,7 @@ def _find_bp(blueprints, bp_id):
     return None
 
 
-def recommend_blueprint(detection):
+def recommend_blueprint(detection, preferences=None):
     """
     Recommend the best blueprint based on detection results.
     Returns (blueprint_dict, confidence_score).
@@ -182,6 +183,8 @@ def recommend_blueprint(detection):
         if lang_name in {"typescript", "javascript"}:
             if "next" in frameworks:
                 detections.append((_find_bp(blueprints, "next-fullstack"), 0.95))
+            if "uni-app" in frameworks or "uniapp" in frameworks:
+                detections.append((_find_bp(blueprints, "uni-app-nitro"), 0.92))
             if "react" in frameworks:
                 detections.append((_find_bp(blueprints, "react-fastapi"), 0.90))
             if "vue" in frameworks or "nuxt" in frameworks:
@@ -196,11 +199,38 @@ def recommend_blueprint(detection):
             if "django" in frameworks:
                 detections.append((_find_bp(blueprints, "vue-django"), 0.80))
 
+        elif lang_name == "java":
+            if "spring" in frameworks:
+                detections.append((_find_bp(blueprints, "react-springboot"), 0.92))
+            else:
+                detections.append((_find_bp(blueprints, "react-springboot"), 0.70))
+
         elif lang_name == "go":
             detections.append((_find_bp(blueprints, "go-microservice"), 0.90))
 
         elif lang_name == "rust":
             detections.append((_find_bp(blueprints, "rust-axum-api"), 0.90))
+
+    # For a new project, use the user's product priorities to rank the
+    # representative presets before falling back to the generic default.
+    preferences = preferences or {}
+    if not detections and detection.get("is_empty", True):
+        priority = preferences.get("priority")
+        unified_language = preferences.get("unified_language")
+        deployment = preferences.get("deployment")
+        preferred_id = None
+        if priority == "ai" or (priority == "demo" and unified_language == "yes"):
+            preferred_id = "nuxt-ai-fullstack"
+        elif priority == "enterprise":
+            preferred_id = "react-springboot"
+        elif priority == "ml":
+            preferred_id = "python-ml-service"
+
+        if preferred_id:
+            preferred = _find_bp(blueprints, preferred_id)
+            if preferred:
+                confidence = 0.92 if deployment in {None, "vercel", "local"} else 0.84
+                return preferred, confidence
 
     # Runtime-based recommendations (medium confidence)
     if not detections:
@@ -315,6 +345,90 @@ def parse_bp_yaml(blueprint_id):
     return load_yaml(bp_file)
 
 
+def stack_summary(bp_details):
+    """Return a compact, human-readable stack summary for choice cards."""
+    stack = bp_details.get("stack", {})
+    frontend = stack.get("frontend", {})
+    backend = stack.get("backend", {})
+    database = stack.get("database", {})
+    ai = stack.get("ai", {})
+    deployment = stack.get("deployment", {})
+
+    frontend_name = frontend.get("framework", "none")
+    if frontend.get("version"):
+        frontend_name += " " + str(frontend["version"])
+    if frontend.get("ui_library"):
+        frontend_name += " + " + str(frontend["ui_library"])
+
+    backend_name = backend.get("framework", "none")
+    if backend.get("version"):
+        backend_name += " " + str(backend["version"])
+    if backend.get("language"):
+        backend_name += " / " + str(backend["language"])
+    if backend.get("api_style"):
+        backend_name += " / " + str(backend["api_style"])
+
+    database_name = database.get("primary", "none")
+    if isinstance(database_name, dict):
+        database_name = database_name.get("type", "none")
+    if database.get("production"):
+        database_name += " → " + str(database["production"])
+
+    ai_name = ai.get("sdk", "none")
+    deployment_name = deployment.get("platform", deployment.get("type", "none"))
+    package_manager = stack.get("package_manager", "none")
+    if isinstance(package_manager, dict):
+        package_manager = package_manager.get("name", "none")
+    apps = bp_details.get("apps", [])
+    apps_summary = ""
+    if isinstance(apps, list) and apps:
+        ids = []
+        for app in apps:
+            if isinstance(app, dict):
+                ids.append(str(app.get("id") or app.get("name") or "?"))
+            else:
+                ids.append(str(app))
+        apps_summary = "单仓多应用({}) | ".format("、".join(ids[:4]))
+
+    return apps_summary + "前端: {} | 后端: {} | AI: {} | 数据库: {} | 部署: {} | 包管理器: {}".format(
+        frontend_name, backend_name, ai_name, database_name, deployment_name, package_manager
+    )
+
+
+def write_stack_decision(project_dir, blueprint_id, source="wizard", preferences=None):
+    """Persist the user's selected stack after generation succeeds."""
+    bp = parse_bp_yaml(blueprint_id)
+    out_dir = Path(project_dir) / "docs" / "00-research"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    decision_path = out_dir / "stack-decision.md"
+    if decision_path.exists():
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        decision_path = out_dir / ("stack-decision-{}.md".format(stamp))
+        suffix = 2
+        while decision_path.exists():
+            decision_path = out_dir / ("stack-decision-{}-{}.md".format(stamp, suffix))
+            suffix += 1
+
+    stack = bp.get("stack", {})
+    content = "# 技术栈决策\n\n"
+    content += "> 由 AI Bootstrap Wizard 生成。该文件记录用户确认过的技术方案，后续架构变更需补充 ADR。\n\n"
+    content += "- **选择来源**: {}\n".format(source)
+    content += "- **Blueprint**: {} v{}\n".format(bp.get("name", blueprint_id), bp.get("version", ""))
+    content += "- **方案摘要**: {}\n\n".format(stack_summary(bp))
+    if preferences:
+        content += "- **选型偏好**: {}\n\n".format(json.dumps(preferences, ensure_ascii=False))
+    content += "## 完整组合\n\n"
+    content += "```yaml\n{}\n```\n\n".format(json.dumps(stack, ensure_ascii=False, indent=2))
+    content += "## 选择理由与代价\n\n"
+    content += "- 选择理由：在项目目标、团队能力、交付速度和部署环境之间取得平衡。\n"
+    content += "- 主要代价：后续需要关注数据库扩展、AI 长任务异步化和第三方 Provider 迁移。\n"
+    content += "\n## 未来迁移触发条件\n\n"
+    content += "- 并发写入、复杂报表或长耗时 AI 任务成为主要瓶颈时，迁移到独立数据库、队列或异步任务系统。\n"
+    content += "- 团队协作边界、合规要求或部署规模显著变化时，重新评估 Blueprint 并补充 ADR。\n"
+    decision_path.write_text(content, encoding="utf-8")
+    return decision_path
+
+
 # ─── Wizard Questions ────────────────────────────────────────────────────────
 
 def ask_project_info():
@@ -328,11 +442,44 @@ def ask_project_info():
     return name, description
 
 
-def ask_blueprint(detection, mode):
+def ask_strategy_preferences(mode):
+    """Collect the five decisions that materially affect stack selection."""
+    section("技术方案偏好")
+    info("先回答五个产品级问题，向导会据此推荐典型技术方案。")
+    print("    ai         AI 原生应用、AI 交互与生成能力优先")
+    print("    demo       快速做出可交互 Demo / MVP")
+    print("    enterprise 企业级扩展、团队协作和长期维护")
+    print("    ml         模型、数据处理和算法能力优先")
+    priority = ask("第一版更看重什么", default="ai", options=["ai", "demo", "enterprise", "ml"])
+
+    print()
+    print("    yes        前后端统一使用 TypeScript")
+    print("    no         接受 Python / Go 等后端语言")
+    unified_language = ask("是否希望前后端统一语言", default="yes", options=["yes", "no"])
+
+    print()
+    print("    local      本地 Demo / 单机部署")
+    print("    vercel     Vercel / Serverless")
+    print("    docker     Docker / 云服务器")
+    deployment = ask("预计如何部署", default="vercel", options=["local", "vercel", "docker"])
+
+    print()
+    print("    yes        需要独立管理后台 / PC Web")
+    print("    no         暂不需要")
+    needs_admin = ask("是否需要独立管理后台", default="no", options=["yes", "no"])
+    return {
+        "priority": priority,
+        "unified_language": unified_language,
+        "deployment": deployment,
+        "needs_admin": needs_admin,
+    }
+
+
+def ask_blueprint(detection, mode, preferences=None):
     """Ask user to select a blueprint, with recommendation."""
     blueprints = list_blueprints()
 
-    recommended, confidence = recommend_blueprint(detection)
+    recommended, confidence = recommend_blueprint(detection, preferences)
     recommended_id = recommended["id"] if recommended else blueprints[0]["id"]
 
     section("\u9009\u62e9 Blueprint")
@@ -344,7 +491,11 @@ def ask_blueprint(detection, mode):
             info("\u68c0\u6d4b\u5230\u73af\u5883: " + ", ".join(rt_names))
         success("\u63a8\u8350: " + C(Style.BOLD, recommended["name"]) +
                 " (" + recommended.get("description", "") + ")")
+        info("技术方案: " + stack_summary(parse_bp_yaml(recommended["id"])))
         info("\u7f6e\u4fe1\u5ea6: {:.0%}".format(confidence))
+        alternatives = [bp for bp in blueprints if bp["id"] != recommended["id"]][:2]
+        if alternatives:
+            info("可替代方案: " + "、".join(bp["name"] for bp in alternatives))
         print()
         text = "\u4f7f\u7528\u63a8\u8350 Blueprint\u300c{}\u300d".format(recommended["name"])
         if confirm(text, default="Y"):
@@ -352,16 +503,18 @@ def ask_blueprint(detection, mode):
 
     # Show all blueprints
     print()
-    info("\u53ef\u7528 Blueprint:")
+    info("\u53ef\u7528典型技术方案（先看组合，再选择 Blueprint）:")
     for i, bp in enumerate(blueprints, 1):
         marker = " " + C(Style.GREEN, "\u2605 \u63a8\u8350") if bp["id"] == recommended_id else ""
         tags = C(Style.GRAY, " [" + ", ".join(bp.get("tags", [])) + "]")
         desc = C(Style.GRAY, bp.get("description", ""))
+        details = parse_bp_yaml(bp["id"])
         print("    {}. {}{}".format(
             C(Style.CYAN, str(i)),
             C(Style.BOLD, bp["name"]) + tags + marker,
         ))
         print("       " + desc)
+        print("       " + C(Style.GRAY, stack_summary(details)))
 
     print()
     default_idx = 1
@@ -457,7 +610,7 @@ def ask_deployment(mode):
 # ─── Summary Display ─────────────────────────────────────────────────────────
 
 def show_summary(name, description, blueprint, agents_list, platform,
-                 project_dir, mode, need_docker=False, bp_details=None):
+                 project_dir, mode, need_docker=False, need_ci=False, bp_details=None):
     """Show a summary of all choices before generation."""
     header("\u786e\u8ba4\u914d\u7f6e")
 
@@ -470,16 +623,23 @@ def show_summary(name, description, blueprint, agents_list, platform,
     info("Blueprint:   " + C(Style.BOLD, blueprint.get("name", blueprint["id"])))
 
     if bp_details:
-        fe = bp_details.get("stack", {}).get("frontend", {}).get("framework", "N/A")
-        be = bp_details.get("stack", {}).get("backend", {}).get("framework", "N/A")
-        db = bp_details.get("stack", {}).get("database", {}).get("primary", "N/A")
-        arch = bp_details.get("architecture", {}).get("style", "N/A")
-        info("\u524d\u7aef:       " + fe)
-        info("\u540e\u7aef:       " + be)
-        info("\u6570\u636e\u5e93:      " + db)
-        info("\u67b6\u6784:       " + arch)
+        stack = bp_details.get("stack", {})
+        frontend = stack.get("frontend", {})
+        database = stack.get("database", {})
+        ai = stack.get("ai", {})
+        deployment = stack.get("deployment", {})
+        primary_db = database.get("primary", "N/A")
+        if isinstance(primary_db, dict):
+            primary_db = primary_db.get("type", "N/A")
+        info("完整技术栈: " + stack_summary(bp_details))
+        info("UI 库:       " + str(frontend.get("ui_library", "none")))
+        info("AI SDK:      " + str(ai.get("sdk", "none")))
+        info("生产数据库:   " + str(database.get("production", primary_db)))
+        info("部署平台:     " + str(deployment.get("platform", "none")))
+        info("架构:         " + str(bp_details.get("architecture", {}).get("style", "N/A")))
 
-    info("\u90e8\u7f72:       " + ("Docker" if need_docker else "None"))
+    info("\u9644\u52a0 Docker: " + ("Yes" if need_docker else "No"))
+    info("CI/CD:       " + ("Yes" if need_ci else "No"))
     print()
     info("AI Agent:    " + ", ".join(agents_list))
     info("\u4e3b\u5e73\u53f0:      " + platform)
@@ -496,6 +656,8 @@ def run_wizard(args):
     mode = args.mode.lower()
     force_blueprint = args.blueprint
     dry_run = args.dry_run
+    selection_source = "wizard"
+    preferences = {}
 
     header("AI Bootstrap Wizard v{}".format(BOOTSTRAP_VERSION))
 
@@ -552,12 +714,15 @@ def run_wizard(args):
         found = _find_bp(all_bps, force_blueprint)
         if found:
             blueprint_id = force_blueprint
+            selection_source = "explicit --blueprint"
             info("\u4f7f\u7528\u6307\u5b9a Blueprint: " + C(Style.BOLD, found["name"]))
         else:
             warning("Blueprint '{}' \u4e0d\u5b58\u5728\uff0c\u4f7f\u7528\u63a8\u8350".format(force_blueprint))
-            blueprint_id = ask_blueprint(detection, mode)
+            preferences = ask_strategy_preferences(mode)
+            blueprint_id = ask_blueprint(detection, mode, preferences)
     else:
-        blueprint_id = ask_blueprint(detection, mode)
+        preferences = ask_strategy_preferences(mode)
+        blueprint_id = ask_blueprint(detection, mode, preferences)
 
     all_bps = list_blueprints()
     selected_bp = next((bp for bp in all_bps if bp["id"] == blueprint_id), all_bps[0])
@@ -583,6 +748,7 @@ def run_wizard(args):
         project_dir=str(project_dir),
         mode=mode,
         need_docker=need_docker,
+        need_ci=need_ci,
         bp_details=bp_details,
     )
 
@@ -613,12 +779,19 @@ def run_wizard(args):
         return True
 
     if gen_ok:
+        decision_path = write_stack_decision(
+            project_dir,
+            blueprint_id,
+            source=selection_source,
+            preferences=preferences,
+        )
         print()
         header(C(Style.GREEN, "\u2713  Bootstrap \u5b8c\u6210"))
         info("\u9879\u76ee:      " + C(Style.BOLD, name))
         info("Blueprint: " + C(Style.BOLD, selected_bp["name"]))
         info("\u76ee\u5f55:      " + str(project_dir))
         info("Agent:     " + ", ".join(agents_list))
+        info("\u6280\u672f\u6808\u51b3\u7b56: " + str(decision_path))
 
         print()
         val_cmd = "python3 {} --dir {}".format(SCRIPTS_DIR / "validate.py", project_dir)

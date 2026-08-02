@@ -11,6 +11,8 @@ generated: {{CREATED_DATE}}
 
 ---
 
+{{PROJECT_SKILLS_SECTION}}
+
 ## Agent 定义
 
 {{AGENT_DEFINITIONS}}

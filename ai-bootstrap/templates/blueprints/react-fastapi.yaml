@@ -40,6 +40,39 @@ stack:
   package_manager: pnpm + pip
   monorepo: none
 
+design_system:
+  status: required
+  ui_library: shadcn
+  styling: tailwind-css
+  icon_library: lucide-react
+  color_mode: light-dark
+  token_preset: ink-indigo
+  theme_entry:
+    framework: frontend/src/main.tsx
+    global_tokens: frontend/src/index.css
+    components: frontend/components/ui variants + semantic Tailwind mappings
+  component_baseline: [button, input, card, badge, navigation, dialog, table/list, empty/error]
+
 architecture:
   style: layered
   pattern: modular-monolith
+
+layout:
+  source_root: .
+  key_dirs:
+    frontend/: "React + Vite 前端应用"
+    frontend/src/: "前端源码（components、pages、hooks、lib、api）"
+    frontend/public/: "Vite 官方公共静态资源目录"
+    backend/: "FastAPI 后端"
+    backend/app/: "FastAPI 应用包"
+    backend/app/api/: "API 路由模块"
+    backend/app/core/: "配置、依赖与核心逻辑"
+    backend/app/models/: "SQLAlchemy 模型"
+    backend/app/schemas/: "Pydantic schemas"
+    backend/tests/: "pytest 测试"
+  conventions: "前端遵循 Vite 官方 src/public 结构；后端遵循 FastAPI 官方推荐的应用包与路由组织。"
+
+commands:
+  install: "pnpm --dir frontend install && pip install -r backend/requirements.txt"
+  dev: "pnpm --dir frontend dev"
+  test: "pnpm --dir frontend test && pytest backend/tests"

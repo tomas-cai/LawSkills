@@ -41,8 +41,31 @@ stack:
   monorepo: none
   build_tool: makefile
 
+design_system:
+  status: not-applicable
+  rationale: no frontend is included in this Blueprint
+
 architecture:
   style: clean
   pattern: microservices
   service_mesh: optional
   api_gateway: kong
+
+layout:
+  source_root: .
+  key_dirs:
+    cmd/: "可执行程序入口"
+    cmd/server/: "微服务主程序入口"
+    internal/: "Go 官方约定的内部包（不可被外部导入）"
+    internal/handler/: "HTTP/gRPC handlers"
+    internal/service/: "业务服务层"
+    internal/repository/: "数据访问层"
+    pkg/: "可对外复用的公共包"
+    configs/: "配置文件"
+    migrations/: "数据库迁移"
+  conventions: "遵循 Go 官方模块与 cmd/internal/pkg 约定；业务包按 handler/service/repository 分层。"
+
+commands:
+  install: "go mod download"
+  dev: "go run ./cmd/server"
+  test: "go test ./..."

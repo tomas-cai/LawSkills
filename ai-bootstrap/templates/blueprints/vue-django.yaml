@@ -45,6 +45,33 @@ stack:
   package_manager: pnpm + pip
   monorepo: none
 
+design_system:
+  status: required
+  ui_library: naive-ui
+  styling: css-variables
+  icon_library: lucide-vue-next
+  color_mode: light-dark
+  token_preset: slate-cyan
+  theme_entry:
+    framework: frontend/src/main.ts
+    global_tokens: frontend/src/styles/tokens.css
+    components: NConfigProvider theme overrides + component props
+  component_baseline: [button, input, card, badge, navigation, dialog, table/list, empty/error]
+
 architecture:
   style: layered
   pattern: modular-monolith
+
+layout:
+  source_root: .
+  key_dirs:
+    frontend/: "Vue + Vite 前端应用"
+    frontend/src/: "前端源码（components、views、stores、api）"
+    frontend/public/: "Vite 公共静态资源"
+    backend/: "Django 工程（manage.py + config/ + 业务 app）"
+  conventions: "遵循 Django 官方项目结构：manage.py 位于工程根，项目配置包与业务 app 分离；前端遵循 Vite src/public 约定。"
+
+commands:
+  install: "pnpm --dir frontend install && pip install -r backend/requirements.txt"
+  dev: "pnpm --dir frontend dev"
+  test: "pnpm --dir frontend test && pytest backend"
