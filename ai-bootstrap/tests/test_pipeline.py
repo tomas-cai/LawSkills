@@ -913,6 +913,125 @@ body {
             self.assertEqual(naive_check["status"], "failed")
             self.assertIn("naive-ui/dist", "\n".join(naive_check["errors"]))
 
+    # ── shadcn / Naive UI 瘦 DEMO starter（P0，生成即能跑 + 校验即通过）────────────
+
+    def test_react_fastapi_blueprint_generates_shadcn_starter(self):
+        """react-fastapi 生成：shadcn/ui v3 官方范式（Tailwind v4 CSS 变量 + 源码拷贝组件 + 语义类名 + @/* 别名），validate 全 passed。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-shadcn-starter-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "react-fastapi",
+                "--name", "ShadDemo", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            frontend = Path(project) / "frontend"
+            self.assertTrue((frontend / "components.json").exists())
+            self.assertTrue((frontend / "src" / "lib" / "utils.ts").exists())
+            self.assertTrue((frontend / "src" / "components" / "ui" / "button.tsx").exists())
+            self.assertTrue((frontend / "src" / "index.css").exists())
+
+            # shadcn 官方依赖：@tailwindcss/vite + tailwindcss v4 + cva/clsx/tailwind-merge/lucide
+            pkg = (frontend / "package.json").read_text(encoding="utf-8")
+            self.assertIn("@tailwindcss/vite", pkg)
+            self.assertIn('"tailwindcss"', pkg)
+            self.assertIn("class-variance-authority", pkg)
+            self.assertIn("lucide-react", pkg)
+            self.assertNotIn("babel-plugin-import", pkg)
+
+            # 全局 CSS：@import "tailwindcss" + --primary / --radius 主题变量
+            css = (frontend / "src" / "index.css").read_text(encoding="utf-8")
+            self.assertIn('@import "tailwindcss"', css)
+            self.assertIn("--primary", css)
+            self.assertIn("--radius", css)
+
+            # 语义类名 + {{PROJECT_NAME}} 渲染
+            app_tsx = (frontend / "src" / "App.tsx").read_text(encoding="utf-8")
+            self.assertIn("bg-primary", app_tsx)
+            self.assertIn("ShadDemo", app_tsx)
+            self.assertNotIn("{{PROJECT", app_tsx)
+            utils_ts = (frontend / "src" / "lib" / "utils.ts").read_text(encoding="utf-8")
+            self.assertIn("twMerge", utils_ts)
+
+            # @/* 路径别名（shadcn add 产物依赖 @/lib/utils）
+            vite_cfg = (frontend / "vite.config.ts").read_text(encoding="utf-8")
+            self.assertIn("@tailwindcss/vite", vite_cfg)
+            tsconfig = (frontend / "tsconfig.json").read_text(encoding="utf-8")
+            self.assertIn('"@/*"', tsconfig)
+
+            # 组件基线：源码拷贝进 src/components/ui/
+            ui_text = "\n".join(
+                f.read_text(encoding="utf-8") for f in (frontend / "src" / "components" / "ui").rglob("*.tsx")
+            )
+            self.assertIn("Dialog", ui_text)
+            self.assertIn("Table", ui_text)
+            self.assertIn("Badge", ui_text)
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            report = json.loads(validation.stdout)
+            self.assertEqual(report["status"], "passed", report)
+            shadcn_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+                and "shadcn" in str(c["details"].get("official_pattern", "")).lower()
+            )
+            self.assertEqual(shadcn_check["status"], "passed", shadcn_check.get("warnings"))
+            self.assertEqual(shadcn_check["details"].get("starter"), "react-shadcn-web")
+
+    def test_vue_django_blueprint_generates_naive_starter(self):
+        """vue-django 生成：Naive UI 2.x 官方范式（零 CSS 导入 + n-config-provider theme-overrides + zhCN/dateZhCN），validate 全 passed。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-naive-starter-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "vue-django",
+                "--name", "NaiveDemo", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            frontend = Path(project) / "frontend"
+            self.assertTrue((frontend / "src" / "main.ts").exists())
+            self.assertTrue((frontend / "src" / "theme.ts").exists())
+            self.assertTrue((frontend / "src" / "App.vue").exists())
+
+            pkg = (frontend / "package.json").read_text(encoding="utf-8")
+            self.assertIn('"naive-ui"', pkg)
+            self.assertNotIn("babel-plugin-import", pkg)
+
+            # 零 CSS 导入 + 全量注册（官方范式，禁止 naive-ui/dist/index.css）
+            main_ts = (frontend / "src" / "main.ts").read_text(encoding="utf-8")
+            self.assertNotIn("naive-ui/dist", main_ts)
+            self.assertIn("app.use(naive)", main_ts)
+
+            # 主题令牌集中 theme.ts（GlobalThemeOverrides）
+            theme_ts = (frontend / "src" / "theme.ts").read_text(encoding="utf-8")
+            self.assertIn("GlobalThemeOverrides", theme_ts)
+            self.assertIn("themeOverrides", theme_ts)
+
+            # n-config-provider :theme-overrides + 中文 locale
+            app_vue = (frontend / "src" / "App.vue").read_text(encoding="utf-8")
+            self.assertIn("n-config-provider", app_vue)
+            self.assertIn("theme-overrides", app_vue)
+            self.assertIn("zhCN", app_vue)
+            self.assertIn("dateZhCN", app_vue)
+
+            # 组件基线：n-* 组件（data-table / button / modal）
+            views_text = "\n".join(
+                f.read_text(encoding="utf-8") for f in (frontend / "src" / "views").rglob("*.vue")
+            )
+            self.assertIn("<n-data-table", views_text)
+            self.assertIn("<n-button", views_text)
+            self.assertIn("<n-modal", views_text)
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            report = json.loads(validation.stdout)
+            self.assertEqual(report["status"], "passed", report)
+            naive_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+                and "naive" in str(c["details"].get("official_pattern", "")).lower()
+            )
+            self.assertEqual(naive_check["status"], "passed", naive_check.get("warnings"))
+            self.assertEqual(naive_check["details"].get("starter"), "vue-naive-web")
+
+
 
 if __name__ == "__main__":
     unittest.main()

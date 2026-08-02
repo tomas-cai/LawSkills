@@ -77,3 +77,10 @@ commands:
   install: "pnpm --dir frontend install && pip install -r backend/requirements.txt"
   dev: "pnpm --dir frontend dev"
   test: "pnpm --dir frontend test && pytest backend/tests"
+
+starter:
+  enabled: true
+  mode: mock-first
+  template_dirs:
+    - dir: react-shadcn-web
+      target: "frontend"

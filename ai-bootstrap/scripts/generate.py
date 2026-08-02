@@ -55,7 +55,7 @@ STARTER_TEXT_EXTENSIONS = {
 }
 STARTER_TEXT_FILENAMES = {".env.example", ".gitignore"}
 
-BOOTSTRAP_VERSION = "1.9.0"
+BOOTSTRAP_VERSION = "1.10.0"
 
 # Agent platform configurations
 AGENT_PLATFORMS = {

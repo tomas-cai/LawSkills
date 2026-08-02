@@ -1,0 +1,26 @@
+{
+  "name": "{{PROJECT_SLUG}}-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "{{PROJECT_NAME}} 企业级前端（Vue 3 + Vite + Naive UI 2.x）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@vicons/ionicons5": "^0.13.0",
+    "naive-ui": "^2.42.0",
+    "pinia": "^3.0.0",
+    "vfonts": "^0.0.3",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "typescript": "^5.8.0",
+    "vite": "^6.0.0",
+    "vue-tsc": "^3.0.0"
+  }
+}

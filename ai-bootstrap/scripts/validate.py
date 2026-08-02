@@ -1610,7 +1610,7 @@ def _check_shadcn_conformance(project_path: Path, report: ValidationReport) -> N
     - pnpm dlx shadcn@latest init 生成 components.json + globals.css 主题 CSS 变量（--primary / --radius）+ lib/utils.ts cn()
     - 组件用 pnpm dlx shadcn@latest add <component> 拷进 src/components/ui/；不走 babel-plugin-import
     - 主题色只改 CSS 变量；页面用 bg-primary / text-muted 等语义类名，不散落 hex
-    注意：shadcn Blueprint 尚无内置 starter，本检查对缺失项只报 warning，仅拦截明确反模式（如 babel-plugin-import）。
+    注意：react-fastapi Blueprint 已内置 react-shadcn-web starter（生成即通过）；对缺失项仍只报 warning，仅拦截明确反模式（如 babel-plugin-import）。
     """
     check = ValidationCheck(
         "ui-stack-conformance",
@@ -1697,6 +1697,7 @@ def _check_shadcn_conformance(project_path: Path, report: ValidationReport) -> N
         "shadcn_apps": len(shadcn_apps),
         "apps": details,
         "official_pattern": "https://v3.shadcn.com/docs/installation/vite + shadcn init/add",
+        "starter": "react-shadcn-web",
     }
     if issues:
         check.status = "failed"
@@ -1719,7 +1720,7 @@ def _check_naive_ui_conformance(project_path: Path, report: ValidationReport) ->
     - 中文环境注入 locale={zhCN} date-locale={dateZhCN}（来自 naive-ui）
     - 按需可配 unplugin-vue-components + NaiveUiResolver + unplugin-auto-import
     - 主题令牌集中在 theme.ts 导出 themeOverrides；页面不散落 hex
-    注意：vue-django Blueprint 尚无内置 starter，本检查对缺失项只报 warning，仅拦截明确反模式（如导入全量 CSS）。
+    注意：vue-django Blueprint 已内置 vue-naive-web starter（生成即通过）；对缺失项仍只报 warning，仅拦截明确反模式（如导入全量 CSS）。
     """
     check = ValidationCheck(
         "ui-stack-conformance",
@@ -1805,6 +1806,7 @@ def _check_naive_ui_conformance(project_path: Path, report: ValidationReport) ->
         "naive_apps": len(naive_apps),
         "apps": details,
         "official_pattern": "https://www.naiveui.com/zh-CN/os-theme + 快速上手",
+        "starter": "vue-naive-web",
     }
     if issues:
         check.status = "failed"
@@ -1977,7 +1979,7 @@ def validate(project_dir: str, fix: bool = False, quiet: bool = False) -> Valida
 
 # ─── CLI Entry ────────────────────────────────────────────────────────────────
 
-BOOTSTRAP_VERSION = "1.9.0"
+BOOTSTRAP_VERSION = "1.10.0"
 
 
 def main():
