@@ -1,0 +1,4 @@
+interface:
+  display_name: "价值观案例写作 (Values Case Writing)"
+  short_description: "每月生成六维度4分+5分价值观案例，平均分高于4.5，自动查重不重复"
+  default_prompt: "帮我写这个月的价值观案例"
