@@ -1,0 +1,37 @@
+/* ── uni-app 官方全局 SCSS 变量入口 ──
+ * 该文件会被编译期注入每个 <style lang="scss"> 块（uni-app 官方约定）。
+ * 语义令牌命名与 design-token-spec 对齐；禁止在页面散落魔法色值。
+ * Vant 4 的运行时主题变量 --van-* 定义在 src/App.vue 的 :root（H5）。
+ */
+
+// 语义调色板（mobile-coach preset，与 design-token-spec 一致）
+$canvas: #f6f8fc;
+$surface: #ffffff;
+$surface-muted: #eef2f7;
+$ink: #172033;
+$ink-muted: #667085;
+$border: #d8dee9;
+$primary: #4f46e5;
+$accent: #0f9f9a;
+$success: #15803d;
+$warning: #b45309;
+$danger: #b42318;
+$focus: #7c3aed;
+
+// 品牌色阶（供强调/渐变使用）
+$brand-50: #eef2ff;
+$brand-100: #e0e7ff;
+$brand-200: #c7d2fe;
+$brand-300: #a5b4fc;
+$brand-400: #818cf8;
+$brand-500: #6366f1;
+$brand-600: #4f46e5;
+$brand-700: #4338ca;
+$brand-800: #3730a3;
+$brand-900: #312e81;
+
+// 与 Vant 语义变量的映射（组件内可直接复用）
+$van-primary: $primary;
+$van-success: $success;
+$van-warning: $warning;
+$van-danger: $danger;

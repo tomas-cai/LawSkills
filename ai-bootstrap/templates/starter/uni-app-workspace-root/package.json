@@ -1,0 +1,19 @@
+{
+  "name": "{{PROJECT_SLUG}}",
+  "private": true,
+  "version": "1.0.0",
+  "description": "{{PROJECT_DESCRIPTION}}",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm dev:mobile",
+    "dev:mobile": "pnpm --filter @{{PROJECT_SLUG}}/mobile dev:h5",
+    "build:h5": "pnpm --filter @{{PROJECT_SLUG}}/mobile build:h5",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  },
+  "packageManager": "pnpm@10.33.4"
+}

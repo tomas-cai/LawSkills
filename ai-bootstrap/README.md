@@ -4,11 +4,12 @@
 >
 > 为 AI 建立长期、统一、可治理的软件工程上下文。
 >
-> 当前版本：1.6.0 ｜ 执行规范：[SKILL.md](./SKILL.md)
+> 当前版本：1.7.0 ｜ 执行规范：[SKILL.md](./SKILL.md)
 
 ## 版本记录
 
-- `1.6.0`（当前）：新增 UI 栈官方范式校验（ui-stack-conformance）：Nuxt UI 系 starter 按 Nuxt UI v4 / Tailwind v4 官方模板（dashboard/chat）范式初始化（`@import "tailwindcss" theme(static)` + `@import "@nuxt/ui"` + `@theme static` 品牌全色阶、`ui.colors` 语义色映射、`ui.theme.colors`、`tailwindcss` 与 `@iconify-json/*` 依赖、`app/error.vue`），并自动拦截偏离官方范式的生成品（遗留 `--mc-*` 令牌、缺失 tailwindcss 等）。
+- `1.7.0`（当前）：新增 Vant 4 官方范式（ui-stack-conformance）：`uni-app-nitro` Blueprint 升级为 `vant + uni-ui`，内置 uni-app 工作区 + mobile 应用 starter（`apps/mobile`），按 Vant 4 官方 quickstart / vant-demo 范式初始化（`vant/lib/index.css` + `app.use()` 按需注册、`--van-*` 设计令牌、`van-config-provider`、`showToast`/`showDialog` 函数式 API），并拦截反模式（`babel-plugin-import`、全量 css 与 VantResolver 混用）。
+- `1.6.0`：新增 UI 栈官方范式校验（ui-stack-conformance）：Nuxt UI 系 starter 按 Nuxt UI v4 / Tailwind v4 官方模板（dashboard/chat）范式初始化（`@import "tailwindcss" theme(static)` + `@import "@nuxt/ui"` + `@theme static` 品牌全色阶、`ui.colors` 语义色映射、`ui.theme.colors`、`tailwindcss` 与 `@iconify-json/*` 依赖、`app/error.vue`），并自动拦截偏离官方范式的生成品（遗留 `--mc-*` 令牌、缺失 tailwindcss 等）。
 - `1.5.0`：新增框架组件门禁（framework-component-gate）：DESIGN.md 自动登记 Nuxt UI v4 约束（`UFormGroup` → `UFormField`、@nuxt/icon CSS 模式说明），`validate.py` 扫描生成项目源码拦截废弃组件名；演示账号内置到 mock 用户库，页面展示的演示凭据可直接登录。
 - `1.4.0`：新增 `uni-app-nitro` Blueprint，补齐移动端首推组合、管理后台选型询问与运行验证完成标准。
 - `1.3.0`：新增 react-springboot 与 uni-app 移动端首选，引入 Blueprint `layout` 目录契约、栈级启动命令、多应用独立 UI/样式库，并统一验证版本号。

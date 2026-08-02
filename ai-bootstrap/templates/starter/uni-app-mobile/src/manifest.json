@@ -1,0 +1,19 @@
+{
+  "name": "{{PROJECT_NAME}}",
+  "appid": "",
+  "description": "{{PROJECT_NAME}} 移动端（uni-app + Vant 4）",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "app-plus": { "usingComponents": true, "nvueStyleCompiler": "uni-app", "compilerVersion": 3 },
+  "quickapp": {},
+  "mp-weixin": {
+    "appid": "",
+    "setting": { "urlCheck": false },
+    "usingComponents": true
+  },
+  "h5": {
+    "title": "{{PROJECT_NAME}}",
+    "router": { "mode": "hash" }
+  }
+}

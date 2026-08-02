@@ -1,6 +1,6 @@
 ---
 name: ai-bootstrap
-version: "1.6.0"
+version: "1.7.0"
 description: >
   AI Native Engineering Bootstrap System.
   为 AI 建立长期、统一、可治理的软件工程上下文。
@@ -51,7 +51,9 @@ description: >
 - 实现边界沿用上面的 Mock/API 双 adapter 规则：页面 → composable → port（Mock adapter / API adapter）。
 - 若 Blueprint 声明 `starter`，`generate.py` 在全新项目生成时自动复制 `templates/starter/` 下的基线模板：单应用用 `template_dir`，多应用单仓用 `template_dirs`（复制根 + 各 `apps/<id>/` 目录），`.vue/.ts/.js/.json/.md/.yaml/.css` 等文本文件复制时渲染 `{{VARIABLE}}`；用 `--no-starter` 可关闭，`--starter` 可强制开启。
 - 多应用单仓（`monorepo: turbo`）默认生成：pnpm workspace + Turborepo 根、Nuxt 4 前台/后台（DEMO 视觉基线：主题入口、字体插件、布局、核心组件、种子数据）、Nitro standalone API。**Nitro ≥2.13 的路由放在根级 `routes/` 与 `routes/api/`，不再自动扫描 `server/`**。
-- **UI 栈官方范式（ui-stack-conformance）**: Nuxt UI 系 starter 按 Nuxt UI v4 / Tailwind v4 官方模板（dashboard/chat）范式初始化：`main.css` 使用 `@import "tailwindcss" theme(static)` + `@import "@nuxt/ui"` + `@theme static` 注册品牌全色阶；`app.config.ts` 声明 `ui.colors` 语义色映射（primary/secondary/accent/...）；`nuxt.config.ts` 注册 `ui.theme.colors`；依赖补齐 `tailwindcss` 与 `@iconify-json/*` 图标集；页面组件只使用 `bg-primary` / `text-muted` / `border-default` 等语义工具类，并标配 `app/error.vue`（UApp + UError）。`validate.py` 的 `ui-stack-conformance` 校验会自动拦截偏离官方范式的生成品（遗留 `--mc-*` 令牌、缺失 tailwindcss、未接入 `@nuxt/ui` 等）。
+- **UI 栈官方范式（ui-stack-conformance）**: 每个前端 UI 库都按**官方 starter/quickstart 范式**初始化瘦 DEMO，并自动拦截偏离官方做法的生成品：
+  - **Nuxt UI（v4 / Tailwind v4）**: `main.css` 使用 `@import "tailwindcss" theme(static)` + `@import "@nuxt/ui"` + `@theme static` 注册品牌全色阶；`app.config.ts` 声明 `ui.colors` 语义色映射；`nuxt.config.ts` 注册 `ui.theme.colors`；依赖补齐 `tailwindcss` 与 `@iconify-json/*` 图标集；只使用 `bg-primary` / `text-muted` / `border-default` 语义工具类，并标配 `app/error.vue`（UApp + UError）。拦截遗留 `--mc-*` 令牌、缺失 tailwindcss、未接入 `@nuxt/ui` 等。
+  - **Vant 4（移动端 / uni-app）**: 按 Vant 4 官方 quickstart 与 vant-demo 范式初始化：`src/main.ts` 全量 `import 'vant/lib/index.css'` + `app.use(Button)` 按需注册组件（官方推荐，Tree Shaking 默认可用）；体积极致时改用 `unplugin-vue-components` + `@vant/auto-import-resolver`（`VantResolver`）按需引入（此时不引入全量 css）；主题用 700+ 个 `--van-*` CSS 变量（`App.vue` `:root` 全局覆盖 + `<van-config-provider :theme-vars>` 组件级）；函数式 API `showToast` / `showDialog`。拦截 `babel-plugin-import`（Vant 4 已移除）与全量 css + VantResolver 混用。
 - 升级到真实 API 的路径见 `references/basic-feature-baseline.md`。
 
 已在 `nuxt-ai-fullstack` Blueprint 中内置 `multi-app-monorepo`、`jwt + author`、`project-create-edit` 与 `demo-visual-baseline` 基线。
@@ -242,7 +244,7 @@ Blueprint 定义在 `templates/blueprints/` 目录下，每个 Blueprint 一个�
 - `rust-axum-api.yaml` — Rust + Axum + SQLite
 - `python-ml-service.yaml` — Python + FastAPI + PyTorch
 - `nuxt-ai-fullstack.yaml` — Nuxt 4 + Nuxt UI + Nitro + Vercel AI SDK + SQLite/Turso + Drizzle
-- `uni-app-nitro.yaml` — uni-app + Vue3 + uni-ui + Nitro + SQLite/Turso + Vercel AI SDK
+- `uni-app-nitro.yaml` — uni-app + Vue3 + Vant 4 + uni-ui + Nitro + SQLite/Turso + Vercel AI SDK
 
 ### Blueprint 格式
 
@@ -398,7 +400,7 @@ python3 <skill-dir>/scripts/detect.py --dir /path/to/project
 - 展示推荐方案、至少一个替代方案、完整技术组合、优点和代价
 - 等用户确认后再确定 Blueprint
 
-若 Blueprint 包含前端，在生成前读取 `references/design-token-guide.md`，检查 Blueprint 的 `design_system` 字段，并将其落实为设计令牌规范。不得把 Nuxt UI、shadcn、Naive UI 或其他 UI 库的默认主题直接当作产品最终视觉系统。
+若 Blueprint 包含前端，在生成前读取 `references/design-token-guide.md`，检查 Blueprint 的 `design_system` 字段，并将其落实为设计令牌规范。不得把 Nuxt UI、Vant、shadcn、Naive UI 或其他 UI 库的默认主题直接当作产品最终视觉系统。
 
 如用户提出自定义技术栈，先将其归并成一个临时方案摘要；不得因为用户说了某个框架就自行补齐未确认的数据库、部署或 AI SDK。
 

@@ -68,7 +68,7 @@ class BootstrapPipelineTests(unittest.TestCase):
 
         uni = load_blueprint("uni-app-nitro")
         self.assertEqual(uni["stack"]["backend"]["package"], "nitropack")
-        self.assertEqual(uni["design_system"]["ui_library"], "uni-ui")
+        self.assertEqual(uni["design_system"]["ui_library"], "vant + uni-ui")
         self.assertIn("apps/mobile/", uni["layout"]["key_dirs"])
 
     def test_stack_summary_exposes_the_complete_choice(self):
@@ -467,6 +467,99 @@ body {
             gate = next(item for item in report["checks"] if item["name"] == "framework-component-gate")
             self.assertEqual(gate["status"], "failed")
             self.assertTrue(any("UFormGroup" in err and "UFormField" in err for err in gate["errors"]))
+
+
+
+    def test_uni_app_blueprint_generates_vant_mobile_starter(self):
+        """uni-app-nitro 生成：Vant 4 官方范式 + --van-* 令牌 + mock-first 页面，validate 全 passed。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-vant-starter-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "uni-app-nitro",
+                "--name", "UniDemo", "--agents", "codex,cursor",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            # 多应用 starter：根 + apps/mobile（含 {{VARIABLE}} 渲染）
+            root_pkg = (Path(project) / "package.json").read_text(encoding="utf-8")
+            self.assertIn('"name": "unidemo"', root_pkg)
+            self.assertNotIn("{{", root_pkg)
+            mobile = Path(project) / "apps" / "mobile"
+            self.assertTrue((mobile / "package.json").exists())
+            self.assertTrue((mobile / "src" / "main.ts").exists())
+
+            # Vant 4 官方范式：全量 css + app.use() 注册 + 无 babel-plugin-import
+            pkg = (mobile / "package.json").read_text(encoding="utf-8")
+            self.assertIn('"vant"', pkg)
+            self.assertNotIn("babel-plugin-import", pkg)
+            main_ts = (mobile / "src" / "main.ts").read_text(encoding="utf-8")
+            self.assertIn("vant/lib/index.css", main_ts)
+            self.assertIn("app.use(Button)", main_ts)
+            self.assertNotIn("VantResolver", main_ts)
+
+            # 设计令牌：--van-* 全局覆盖 + uni.scss SCSS 令牌
+            app_vue = (mobile / "src" / "App.vue").read_text(encoding="utf-8")
+            self.assertIn("--van-primary-color", app_vue)
+            uni_scss = (mobile / "src" / "uni.scss").read_text(encoding="utf-8")
+            self.assertIn("$primary: #4f46e5", uni_scss)
+
+            # 组件基线 + 函数式 API
+            pages_text = "\n".join(
+                f.read_text(encoding="utf-8") for f in (mobile / "src" / "pages").rglob("*.vue")
+            )
+            self.assertIn("<van-button", pages_text)
+            self.assertIn("van-config-provider", pages_text)
+            self.assertIn("showToast", pages_text)
+            self.assertIn("showDialog", pages_text)
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            report = json.loads(validation.stdout)
+            self.assertEqual(report["status"], "passed")
+            vant_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+            )
+            self.assertEqual(vant_check["status"], "passed", vant_check.get("warnings"))
+
+    def test_vant_conformance_rejects_mixed_import_anti_pattern(self):
+        """负向测试：全量 css 与 VantResolver 按需引入混用必须被 ui-stack-conformance 拦截。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-vant-fail-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "uni-app-nitro",
+                "--name", "UniDemo", "--agents", "codex,cursor",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            mobile = Path(project) / "apps" / "mobile"
+            main_ts = mobile / "src" / "main.ts"
+            main_ts.write_text(
+                main_ts.read_text(encoding="utf-8")
+                + "\nimport { VantResolver } from '@vant/auto-import-resolver'\n",
+                encoding="utf-8",
+            )
+            vite_cfg = mobile / "vite.config.ts"
+            vite_cfg.write_text(
+                vite_cfg.read_text(encoding="utf-8").replace(
+                    "plugins: [uni()],",
+                    "plugins: [uni(), Components({ resolvers: [VantResolver()] })],",
+                ),
+                encoding="utf-8",
+            )
+            pkg_path = mobile / "package.json"
+            pkg = json.loads(pkg_path.read_text(encoding="utf-8"))
+            pkg["devDependencies"]["@vant/auto-import-resolver"] = "^1.10.0"
+            pkg["devDependencies"]["unplugin-vue-components"] = "^28.0.0"
+            pkg_path.write_text(json.dumps(pkg, indent=2), encoding="utf-8")
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            report = json.loads(validation.stdout)
+            self.assertEqual(report["status"], "failed")
+            vant_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+            )
+            self.assertEqual(vant_check["status"], "failed")
+            errors_text = "\n".join(vant_check["errors"])
+            self.assertIn("混用", errors_text)
 
 
 if __name__ == "__main__":

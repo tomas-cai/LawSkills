@@ -1,12 +1,12 @@
-# uni-app-nitro Blueprint v1.0.0
-# uni-app (Vue3 + uni-ui) + Nitro + Drizzle + SQLite/Turso + Vercel AI SDK
+# uni-app-nitro Blueprint v1.1.0
+# uni-app (Vue3 + Vant 4 移动端 UI) + Nitro + Drizzle + SQLite/Turso + Vercel AI SDK
 
 id: uni-app-nitro
 name: UniApp + Nitro
-version: 1.0.0
-description: "uni-app 移动端（H5/小程序/App）+ Nitro API + SQLite/Turso + Vercel AI SDK"
+version: 1.1.0
+description: "uni-app 移动端（H5 优先，Vant 4 移动端 UI；小程序可另用 vant-weapp）+ Nitro API + SQLite/Turso + Vercel AI SDK"
 author: "AI Bootstrap"
-tags: [uni-app, vue3, typescript, nitro, mobile, h5, miniprogram, app, ai]
+tags: [uni-app, vue3, typescript, vant, nitro, mobile, h5, miniprogram, app, ai]
 
 stack:
   frontend:
@@ -14,7 +14,7 @@ stack:
     version: "3.x"
     language: typescript
     build_tool: vite
-    ui_library: uni-ui
+    ui_library: vant + uni-ui
     state_management: pinia
 
   backend:
@@ -49,21 +49,22 @@ stack:
 
 design_system:
   status: required
-  ui_library: uni-ui
-  styling: scss + css-variables
+  ui_library: vant + uni-ui
+  styling: scss + css-variables (--van-*)
   icon_library: uni-icons
   color_mode: light-dark
   token_preset: mobile-coach
+  official_paradigm: "Vant 4 官方 starter 范式（vant-ui/vant-demo + quickstart）：常规用法 import 'vant/lib/index.css' + app.use(Button)（官方推荐，Tree Shaking 默认可用）；体积极致时改用 unplugin-vue-components + @vant/auto-import-resolver（VantResolver）按需引入（此时不再引入全量 css）；主题用 700+ 个 --van-* CSS 变量定制（:root 全局覆盖 + van-config-provider theme-vars 组件级）；函数式 API showToast/showDialog；Vant 4 起禁止 babel-plugin-import、禁止全量+按需混用"
   theme_entry:
-    framework: apps/mobile/src/App.vue
-    global_tokens: apps/mobile/src/uni.scss
-    components: uni-ui theme variables + component props
-  component_baseline: [button, input, cell, list, badge, navigation, tabbar, dialog, empty/error]
+    framework: apps/mobile/src/App.vue（全局 :root 覆盖 --van-*）
+    global_tokens: apps/mobile/src/uni.scss（uni-app 官方 SCSS 变量入口）
+    components: van-config-provider theme-vars + Vant CSS 变量
+  component_baseline: [button, cell, nav-bar, tabbar, field, list, dialog, empty/error]
 
 layout:
   source_root: apps/
   key_dirs:
-    apps/mobile/: "uni-app 移动端（H5/微信小程序/App）"
+    apps/mobile/: "uni-app 移动端（H5 优先，Vant 4；小程序可另用 vant-weapp）"
     apps/mobile/src/pages/: "uni-app 页面与路由"
     apps/mobile/src/components/: "Vue 组件"
     apps/mobile/src/composables/: "组合式函数"
@@ -74,13 +75,24 @@ layout:
     apps/api/server/utils/: "鉴权与共享逻辑"
     apps/api/db/: "Drizzle schema 与迁移"
     packages/contracts/: "前后端共享 TS 类型"
-  conventions: "遵循 uni-app Vue3/Vite 官方目录约定与 Nitro server 目录约定；移动端与 API 独立，共享 packages/contracts。"
+  conventions: "遵循 uni-app Vue3/Vite 官方目录约定（src/pages.json、src/manifest.json、src/uni.scss、App.vue）与 Vant 4 官方引入范式（常规用法 / VantResolver 按需，二选一）；移动端与 API 独立，共享 packages/contracts。"
 
 commands:
   install: "pnpm install"
-  dev: "pnpm --parallel -r run dev"
-  test: "pnpm --parallel -r run typecheck"
+  dev: "pnpm dev:mobile"
+  test: "pnpm typecheck"
 
 architecture:
   style: layered
   pattern: modular-monolith
+
+starter:
+  enabled: true
+  mode: mock-first
+  template_dirs:
+    - dir: uni-app-workspace-root
+      target: ""
+    - dir: uni-app-mobile
+      target: "apps/mobile"
+    - dir: nitro-server-standalone
+      target: "apps/api"

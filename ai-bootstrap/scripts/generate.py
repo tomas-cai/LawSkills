@@ -55,7 +55,7 @@ STARTER_TEXT_EXTENSIONS = {
 }
 STARTER_TEXT_FILENAMES = {".env.example", ".gitignore"}
 
-BOOTSTRAP_VERSION = "1.6.0"
+BOOTSTRAP_VERSION = "1.7.0"
 
 # Agent platform configurations
 AGENT_PLATFORMS = {
@@ -390,12 +390,21 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
             "primary": "#2563EB",
             "accent": "#D97706",
         },
+        "vant": {
+            "direction": "mobile-first utility surface: light canvas, indigo action color, teal progress accent, 8px-friendly radii",
+            "primary": "#4F46E5",
+            "accent": "#0F9F9A",
+        },
     }
-    preset = presets.get(ui_library, {
-        "direction": "semantic product baseline; derive the accent from the product domain before implementation",
-        "primary": "#2563EB",
-        "accent": "#0EA5E9",
-    })
+    _library = str(ui_library).lower()
+    preset = next(
+        (v for k, v in presets.items() if k in _library),
+        {
+            "direction": "semantic product baseline; derive the accent from the product domain before implementation",
+            "primary": "#2563EB",
+            "accent": "#0EA5E9",
+        },
+    )
     preset_name = design.get("token_preset", ui_library or "framework-neutral")
     direction = design.get("direction", preset["direction"])
     primary = design.get("primary", preset["primary"])

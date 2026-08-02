@@ -8,8 +8,10 @@ AI Bootstrap — Framework Component Gate（框架组件门禁注册表）
 - DEPRECATED_COMPONENTS   → validate.py 扫描生成项目源码，拦截已废弃组件名的使用
 - FRAMEWORK_CONSTRAINTS   → generate.py 将约束渲染进 DESIGN.md「框架约束」，作为治理记账
 
-当新 Blueprint 的 ui_library 命中某技术栈（如 nuxt-ui）时，自动生效。
+当新 Blueprint 的 ui_library 命中某技术栈（如 nuxt-ui / vant）时，自动生效。
 """
+
+import re
 
 # 已废弃 → 替代组件（扫描 .vue / .ts 源码中的组件使用；键为大小写敏感组件名）
 DEPRECATED_COMPONENTS: dict[str, str] = {
@@ -32,6 +34,20 @@ FRAMEWORK_CONSTRAINTS: list[dict] = [
             "优先确认图标名在对应 collection 中存在（如新版 lucide 将 `check-circle-2` 更名为 `circle-check-big`）。",
         ],
     },
+    {
+        "library": "vant",
+        "version": "4.x",
+        "notes": [
+            "Vant 4 起官方移除 `babel-plugin-import`：不要再引入该插件，按官方 quickstart 二选一接入——"
+            "常规用法 `import 'vant/lib/index.css'` + `app.use(Button)`（官方推荐，Tree Shaking 默认可用），"
+            "或按需用法 `unplugin-vue-components` + `@vant/auto-import-resolver`（`VantResolver`，不引入全量 css）。",
+            "禁止同时使用全量 `vant/lib/index.css` 与 VantResolver 按需引入（组件重复注册、样式错乱）。"
+            "`validate.py` 的 `ui-stack-conformance` 校验会拦截该反模式。",
+            "主题定制使用 700+ 个 `--van-*` CSS 变量：全局在 `:root` 覆盖，组件级用 "
+            "`<van-config-provider :theme-vars>`；不要直接改 node_modules 里的样式。",
+            "函数式 API（`showToast` / `showDialog` 等）从 `vant` 直接导入即可。",
+        ],
+    },
 ]
 
 
@@ -41,13 +57,16 @@ def _normalize_name(name: str) -> str:
 
 
 def constraints_for_ui_library(ui_library: str | None) -> list[dict]:
-    """按 UI 库名返回适用约束；未知库返回空列表。"""
+    """按 UI 库名返回适用约束；支持复合名（如 'vant + uni-ui'）与未知库（返回空列表）。"""
     if not ui_library:
         return []
-    target = _normalize_name(str(ui_library))
+    tokens = re.split(r"[\s,+/]+", str(ui_library).lower())
+    targets = {_normalize_name(t) for t in tokens if t}
+    if not targets:
+        return []
     return [
         item for item in FRAMEWORK_CONSTRAINTS
-        if _normalize_name(item.get("library", "")) == target
+        if _normalize_name(item.get("library", "")) in targets
     ]
 
 

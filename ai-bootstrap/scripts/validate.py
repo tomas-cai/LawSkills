@@ -1013,6 +1013,12 @@ def check_framework_component_gate(project_path: Path, report: ValidationReport)
 
 
 def check_ui_stack_conformance(project_path: Path, report: ValidationReport) -> None:
+    """Dispatch UI-stack conformance checks for every declared UI library."""
+    _check_nuxt_ui_conformance(project_path, report)
+    _check_vant_conformance(project_path, report)
+
+
+def _check_nuxt_ui_conformance(project_path: Path, report: ValidationReport) -> None:
     """Verify Nuxt UI apps follow the official Nuxt UI v4 / Tailwind v4 theming paradigm.
 
     Official starter paradigm (ui.nuxt.com / github.com/nuxt-ui-templates):
@@ -1155,6 +1161,124 @@ def check_ui_stack_conformance(project_path: Path, report: ValidationReport) -> 
         check.status = "failed"
         check.errors = issues[:20]
         check.warnings = warnings[:20]  # failed 时也保留迁移建议等 warning
+    elif warnings:
+        check.status = "warning"
+        check.warnings = warnings[:20]
+    else:
+        check.status = "passed"
+    report.add_check(check)
+
+
+
+def _check_vant_conformance(project_path: Path, report: ValidationReport) -> None:
+    """Verify Vant 4 apps follow the official Vant 4 quickstart / vant-demo paradigm.
+
+    Official paradigm (vant-ui.github.io/vant quickstart + github.com/vant-ui/vant-demo):
+    - 常规用法（官方推荐）: src/main.ts 引入 'vant/lib/index.css' 全量样式 + app.use(Button) 按需注册组件（Tree Shaking 默认可用）
+    - 按需用法（体积极致）: unplugin-vue-components + @vant/auto-import-resolver（VantResolver），不引入 vant/lib/index.css
+    - 反模式: Vant 4 起移除 babel-plugin-import；禁止全量 css 与 VantResolver 混用
+    - 主题: 700+ 个 --van-* CSS 变量；:root 全局覆盖 + <van-config-provider :theme-vars> 组件级
+    - 函数式 API: showToast / showDialog 从 vant 直接导入
+    """
+    check = ValidationCheck(
+        "ui-stack-conformance",
+        "Verify Vant 4 apps follow the official Vant 4 quickstart paradigm (vant/lib/index.css + app.use() or VantResolver; no babel-plugin-import; --van-* tokens)",
+    )
+
+    vant_apps = _apps_of_kind(project_path, "vant")
+    if not vant_apps:
+        check.status = "skipped"
+        check.details = {"vant_apps": 0, "reason": "no vant apps declared"}
+        report.add_check(check)
+        return
+
+    issues = []
+    warnings = []
+    details = []
+    for app in vant_apps:
+        deps = _package_deps(app)
+        app_src = app / "src"
+        main_ts = app_src / "main.ts"
+        main_text = main_ts.read_text(encoding="utf-8", errors="replace") if main_ts.exists() else ""
+        vite_cfg = app / "vite.config.ts"
+        vite_text = vite_cfg.read_text(encoding="utf-8", errors="replace") if vite_cfg.exists() else ""
+        app_issues = []
+        app_warnings = []
+
+        has_full_css = "vant/lib/index.css" in main_text
+        has_resolver = "VantResolver" in (vite_text + main_text)
+        has_auto_import = any(
+            k in deps for k in ("@vant/auto-import-resolver", "unplugin-vue-components", "unplugin-auto-import")
+        )
+
+        # 1) 官方引入范式（二选一，禁止混用）
+        if not main_text:
+            app_issues.append(f"{app.name}: 缺少 src/main.ts（Vant 官方范式入口）")
+        elif not has_full_css and not (has_resolver and has_auto_import):
+            app_issues.append(
+                f"{app.name}: 未按 Vant 4 官方范式接入——常规用法需在 src/main.ts 引入 'vant/lib/index.css' 并 app.use(组件)，"
+                "或按需用法配置 unplugin-vue-components + @vant/auto-import-resolver（VantResolver，不引入全量 css）"
+            )
+        elif has_full_css and has_resolver:
+            app_issues.append(
+                f"{app.name}: 全量 vant/lib/index.css 与 VantResolver 按需引入混用（反模式：组件重复注册、样式错乱）"
+            )
+
+        # 2) 反模式依赖
+        if "babel-plugin-import" in deps:
+            app_issues.append(f"{app.name}: 仍依赖 babel-plugin-import（Vant 4 起官方已移除，按 quickstart 二选一接入）")
+
+        # 3) 主题令牌：--van-* CSS 变量（uni.scss / App.vue / main.ts）
+        token_files = []
+        for name in ("uni.scss", "App.vue", "main.ts"):
+            f = app_src / name
+            if f.exists() and "--van-" in f.read_text(encoding="utf-8", errors="replace"):
+                token_files.append(name)
+        if not token_files:
+            app_warnings.append(
+                f"{app.name}: 未定义 --van-* 设计令牌（Vant 主题定制应使用 700+ 个 --van-* CSS 变量：:root 全局覆盖或 van-config-provider theme-vars）"
+            )
+
+        # 4) 组件基线与函数式 API 使用
+        sources_text = ""
+        for src_dir in ("src", "components", "pages"):
+            base = app / src_dir
+            if not base.is_dir():
+                continue
+            for f in sorted(base.rglob("*.vue")):
+                try:
+                    sources_text += f.read_text(encoding="utf-8", errors="replace")
+                except Exception:
+                    continue
+        if "<van-" not in sources_text:
+            app_warnings.append(f"{app.name}: 源码未使用 <van-* 组件（Vant 组件基线缺失）")
+        if "van-config-provider" not in sources_text:
+            app_warnings.append(f"{app.name}: 未使用 <van-config-provider>（组件级主题定制建议 :theme-vars）")
+        if "showToast" not in sources_text and "showDialog" not in sources_text:
+            app_warnings.append(f"{app.name}: 未使用 Vant 函数式 API（showToast / showDialog）")
+
+        details.append({
+            "app": app.name,
+            "has_full_css": has_full_css,
+            "has_resolver": has_resolver,
+            "has_auto_import_deps": has_auto_import,
+            "token_files": token_files,
+            "uses_van_components": "<van-" in sources_text,
+            "uses_config_provider": "van-config-provider" in sources_text,
+            "uses_functional_api": "showToast" in sources_text or "showDialog" in sources_text,
+        })
+        issues.extend(app_issues)
+        warnings.extend(app_warnings)
+
+    check.details = {
+        "vant_apps": len(vant_apps),
+        "apps": details,
+        "official_pattern": "https://vant-ui.github.io/vant/#/zh-CN/quickstart + github.com/vant-ui/vant-demo",
+    }
+    if issues:
+        check.status = "failed"
+        check.errors = issues[:20]
+        check.warnings = warnings[:20]
     elif warnings:
         check.status = "warning"
         check.warnings = warnings[:20]
@@ -1323,7 +1447,7 @@ def validate(project_dir: str, fix: bool = False, quiet: bool = False) -> Valida
 
 # ─── CLI Entry ────────────────────────────────────────────────────────────────
 
-BOOTSTRAP_VERSION = "1.6.0"
+BOOTSTRAP_VERSION = "1.7.0"
 
 
 def main():
