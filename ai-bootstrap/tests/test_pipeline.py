@@ -1033,5 +1033,67 @@ body {
 
 
 
+    def test_next_fullstack_blueprint_generates_shadcn_next_starter(self):
+        """next-fullstack 生成：shadcn/ui v3 + Next.js App Router 官方范式（app/ + components/ + lib/ + components.json rsc），validate 全 passed。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-shadcn-next-starter-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "next-fullstack",
+                "--name", "NextDemo", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            web = Path(project) / "apps" / "web"
+            self.assertTrue((web / "components.json").exists())
+            self.assertTrue((web / "app" / "globals.css").exists())
+            self.assertTrue((web / "app" / "layout.tsx").exists())
+            self.assertTrue((web / "components" / "ui" / "button.tsx").exists())
+            self.assertTrue((web / "lib" / "utils.ts").exists())
+
+            # Next.js + shadcn 官方依赖：@tailwindcss/postcss + next，无 babel-plugin-import
+            pkg = (web / "package.json").read_text(encoding="utf-8")
+            self.assertIn('"next"', pkg)
+            self.assertIn("@tailwindcss/postcss", pkg)
+            self.assertNotIn("babel-plugin-import", pkg)
+
+            # 全局 CSS：@import "tailwindcss" + --primary / --radius 主题变量
+            css = (web / "app" / "globals.css").read_text(encoding="utf-8")
+            self.assertIn('@import "tailwindcss"', css)
+            self.assertIn("--primary", css)
+            self.assertIn("--radius", css)
+
+            # components.json：RSC 模式 + app/globals.css + @/* 别名
+            components_json = json.loads((web / "components.json").read_text(encoding="utf-8"))
+            self.assertTrue(components_json.get("rsc"))
+            self.assertEqual(components_json["tailwind"]["css"], "app/globals.css")
+
+            # Next.js 官方范式：postcss 插件 + 路径别名 + 'use client' 交互组件
+            postcss = (web / "postcss.config.mjs").read_text(encoding="utf-8")
+            self.assertIn("@tailwindcss/postcss", postcss)
+            tsconfig = (web / "tsconfig.json").read_text(encoding="utf-8")
+            self.assertIn('"@/*"', tsconfig)
+            dialog = (web / "components" / "ui" / "dialog.tsx").read_text(encoding="utf-8")
+            self.assertIn("'use client'", dialog)
+
+            # 语义类名 + {{PROJECT_NAME}} 渲染 + App Router 布局
+            shell = (web / "components" / "app-shell.tsx").read_text(encoding="utf-8")
+            self.assertIn("bg-primary", shell)
+            self.assertIn("NextDemo", shell)
+            layout = (web / "app" / "layout.tsx").read_text(encoding="utf-8")
+            self.assertIn("NextDemo", layout)
+            self.assertIn("metadata", layout)
+            self.assertNotIn("{{PROJECT", shell + layout)
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            report = json.loads(validation.stdout)
+            self.assertEqual(report["status"], "passed", report)
+            shadcn_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+                and "shadcn" in str(c["details"].get("official_pattern", "")).lower()
+            )
+            self.assertEqual(shadcn_check["status"], "passed", shadcn_check.get("warnings"))
+            self.assertEqual(shadcn_check["details"].get("starter"), "next-shadcn-web")
+
+
 if __name__ == "__main__":
     unittest.main()

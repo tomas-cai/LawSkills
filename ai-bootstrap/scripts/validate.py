@@ -1604,13 +1604,13 @@ def _candidate_web_dirs(project_path: Path) -> list:
 def _check_shadcn_conformance(project_path: Path, report: ValidationReport) -> None:
     """Verify shadcn/ui apps follow the official v3 installation paradigm (Tailwind v4).
 
-    Official paradigm (v3.shadcn.com/docs/installation/vite + shadcn init/add):
+    Official paradigm (v3.shadcn.com/docs/installation/vite + installation/next + shadcn init/add):
     - 组件是源码拷贝进项目（src/components/ui/ + components.json），不是 npm 依赖
     - 全局 CSS 以 @import "tailwindcss" 起步（Vite 插件 @tailwindcss/vite；tsconfig/vite 配 @/* 别名）
     - pnpm dlx shadcn@latest init 生成 components.json + globals.css 主题 CSS 变量（--primary / --radius）+ lib/utils.ts cn()
     - 组件用 pnpm dlx shadcn@latest add <component> 拷进 src/components/ui/；不走 babel-plugin-import
     - 主题色只改 CSS 变量；页面用 bg-primary / text-muted 等语义类名，不散落 hex
-    注意：react-fastapi Blueprint 已内置 react-shadcn-web starter（生成即通过）；对缺失项仍只报 warning，仅拦截明确反模式（如 babel-plugin-import）。
+    注意：react-fastapi 内置 react-shadcn-web（Vite）starter、next-fullstack 内置 next-shadcn-web（Next.js App Router）starter，均生成即通过；对缺失项仍只报 warning，仅拦截明确反模式（如 babel-plugin-import）。
     """
     check = ValidationCheck(
         "ui-stack-conformance",
@@ -1620,7 +1620,7 @@ def _check_shadcn_conformance(project_path: Path, report: ValidationReport) -> N
     shadcn_apps = []
     for d in _candidate_web_dirs(project_path):
         has_components_json = (d / "components.json").exists()
-        has_ui_dir = (d / "src" / "components" / "ui").is_dir()
+        has_ui_dir = (d / "src" / "components" / "ui").is_dir() or (d / "components" / "ui").is_dir()
         if has_components_json or has_ui_dir:
             shadcn_apps.append(d)
     if not shadcn_apps:
@@ -1644,7 +1644,7 @@ def _check_shadcn_conformance(project_path: Path, report: ValidationReport) -> N
 
         # 2) 全局 CSS：@import "tailwindcss"（v4）或 @tailwind base（v3 legacy）
         global_css = None
-        for css in (app / "app" / "globals.css", app / "src" / "index.css", app / "src" / "styles" / "globals.css", app / "styles" / "globals.css"):
+        for css in (app / "app" / "globals.css", app / "src" / "app" / "globals.css", app / "src" / "index.css", app / "src" / "styles" / "globals.css", app / "styles" / "globals.css"):
             if css.exists():
                 global_css = css
                 break
@@ -1657,7 +1657,7 @@ def _check_shadcn_conformance(project_path: Path, report: ValidationReport) -> N
 
         # 3) 主题 CSS 变量（--primary / --radius）
         css_sources = ""
-        for css in (app / "app" / "globals.css", app / "src" / "index.css", app / "src" / "styles" / "globals.css"):
+        for css in (app / "app" / "globals.css", app / "src" / "app" / "globals.css", app / "src" / "index.css", app / "src" / "styles" / "globals.css"):
             if css.exists():
                 css_sources += css.read_text(encoding="utf-8", errors="replace")
         if "--primary" not in css_sources or "--radius" not in css_sources:
@@ -1665,15 +1665,20 @@ def _check_shadcn_conformance(project_path: Path, report: ValidationReport) -> N
 
         # 4) 语义类名使用（bg-primary / text-muted 等）
         sources_text = ""
-        for f in sorted(app_src.rglob("*")):
-            if f.suffix not in {".tsx", ".ts", ".jsx", ".js", ".css"}:
+        # 同时扫描 Vite（src/）与 Next.js App Router（app/ + components/）两种官方布局
+        for root_name in ("src", "app", "components"):
+            root = app / root_name
+            if not root.is_dir():
                 continue
-            if any(part in {"node_modules", "dist", "components/ui"} for part in f.parts):
-                continue
-            try:
-                sources_text += f.read_text(encoding="utf-8", errors="replace")
-            except Exception:
-                continue
+            for f in sorted(root.rglob("*")):
+                if f.suffix not in {".tsx", ".ts", ".jsx", ".js", ".css"}:
+                    continue
+                if any(part in {"node_modules", "dist", "components/ui"} for part in f.parts):
+                    continue
+                try:
+                    sources_text += f.read_text(encoding="utf-8", errors="replace")
+                except Exception:
+                    continue
         if not re.search(r"\b(?:bg|text|border|ring)-primary\b", sources_text) and "bg-secondary" not in sources_text:
             app_warnings.append(f"{app.name}: 源码未使用 shadcn 语义类名（bg-primary / text-muted 等；主题由 CSS 变量驱动）")
 
@@ -1684,7 +1689,7 @@ def _check_shadcn_conformance(project_path: Path, report: ValidationReport) -> N
         details.append({
             "app": str(app.relative_to(project_path)),
             "has_components_json": (app / "components.json").exists(),
-            "has_ui_dir": (app_src / "components" / "ui").is_dir(),
+            "has_ui_dir": (app_src / "components" / "ui").is_dir() or (app / "components" / "ui").is_dir(),
             "global_css": str(global_css.relative_to(app)) if global_css else None,
             "has_tailwind_import": bool(global_css) and ('@import "tailwindcss"' in global_css.read_text(encoding="utf-8", errors="replace") if global_css else False),
             "has_theme_vars": "--primary" in css_sources and "--radius" in css_sources,
@@ -1696,8 +1701,8 @@ def _check_shadcn_conformance(project_path: Path, report: ValidationReport) -> N
     check.details = {
         "shadcn_apps": len(shadcn_apps),
         "apps": details,
-        "official_pattern": "https://v3.shadcn.com/docs/installation/vite + shadcn init/add",
-        "starter": "react-shadcn-web",
+        "official_pattern": "https://v3.shadcn.com/docs/installation/{vite,next} + shadcn init/add",
+        "starter": "next-shadcn-web" if (app / "app" / "layout.tsx").exists() else "react-shadcn-web",
     }
     if issues:
         check.status = "failed"
@@ -1979,7 +1984,7 @@ def validate(project_dir: str, fix: bool = False, quiet: bool = False) -> Valida
 
 # ─── CLI Entry ────────────────────────────────────────────────────────────────
 
-BOOTSTRAP_VERSION = "1.10.0"
+BOOTSTRAP_VERSION = "1.11.0"
 
 
 def main():
