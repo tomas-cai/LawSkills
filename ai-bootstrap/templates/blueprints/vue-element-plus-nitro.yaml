@@ -1,0 +1,97 @@
+# vue-element-plus-nitro Blueprint v1.0.0
+# Vue 3 (Vite SPA) + Element Plus 2.x PC 管理端 UI + Nitro + Drizzle + SQLite/Turso + Vercel AI SDK
+
+id: vue-element-plus-nitro
+name: Vue 3 + Element Plus + Nitro
+version: 1.0.0
+description: "Vue 3 PC 管理端（Element Plus 2.x 企业级 UI）+ Nitro API + SQLite/Turso + Vercel AI SDK"
+author: "AI Bootstrap"
+tags: [vue, vue3, typescript, element-plus, nitro, pc, web, enterprise, ai]
+
+stack:
+  frontend:
+    framework: vue
+    version: "3.x"
+    language: typescript
+    build_tool: vite
+    ui_library: element-plus
+    state_management: pinia
+
+  backend:
+    framework: nitro
+    package: nitropack
+    version: "2.x"
+    language: typescript
+    orm: drizzle
+    api_style: typed rest + server functions
+
+  ai:
+    sdk: vercel-ai-sdk
+    provider_strategy: model-provider-adapter
+
+  database:
+    primary: sqlite
+    version: "3"
+    production: turso/libsql
+
+  auth:
+    provider: jwt
+    strategy: bearer + http-only-cookie
+    role_model: author
+
+  deployment:
+    type: serverless
+    platform: "vercel + turso"
+    ci: github-actions
+
+  package_manager: pnpm
+  monorepo: pnpm-workspace
+
+design_system:
+  status: required
+  ui_library: element-plus
+  styling: css-variables (--el-*) + scss (可选)
+  icon_library: "@element-plus/icons-vue"
+  color_mode: light-dark
+  token_preset: enterprise-ops-desk
+  official_paradigm: "Element Plus 2.x 官方 quickstart 范式（element-plus.org/zh-CN/guide/quickstart.html + theming）：完整引入 import ElementPlus from 'element-plus' + import 'element-plus/dist/index.css' + app.use(ElementPlus)（快速开始，官方推荐）；体积极致时改用 unplugin-vue-components + unplugin-auto-import + ElementPlusResolver（来自 unplugin-vue-components/resolvers）按需引入（此时不引入全量 css，且 vite.config 需配置插件）；Volar 全局组件类型在 tsconfig compilerOptions.types 加入 element-plus/global；中文 locale 用 element-plus/es/locale/lang/zh-cn（app.use 选项或 el-config-provider）；主题用 --el-* CSS 变量（:root 全局覆盖或组件类名作用域覆盖）或 SCSS @use 'element-plus/theme-chalk/src/common/var.scss' with (...)；禁止混用全量 css 与 ElementPlusResolver"
+  theme_entry:
+    framework: apps/web/src/main.ts（app.use(ElementPlus) 或 ElementPlusResolver 按需）
+    global_tokens: apps/web/src/styles/tokens.css（--el-* 语义令牌覆盖）
+    components: --el-* CSS 变量 + el-config-provider（locale / 主题）
+  component_baseline: [button, input, card, form, table, dialog, menu/navigation, tag/badge, empty/error]
+
+layout:
+  source_root: apps/
+  key_dirs:
+    apps/web/: "Vue 3 + Vite + Element Plus PC 管理端"
+    apps/web/src/: "前端源码（views/components/composables/stores/services）"
+    apps/web/src/views/: "页面视图与路由"
+    apps/web/src/styles/: "全局样式与 --el-* 语义令牌"
+    apps/web/src/composables/: "组合式函数与 Mock/API port"
+    apps/api/: "Nitro 后端"
+    apps/api/server/api/: "Nitro API 路由"
+    apps/api/server/utils/: "鉴权与共享逻辑"
+    apps/api/db/: "Drizzle schema 与迁移"
+    packages/contracts/: "前后端共享 TS 类型"
+  conventions: "遵循 Vue3/Vite 官方目录约定（index.html + src/main.ts + src/views + vue-router）与 Element Plus 2.x 官方引入范式（完整引入 / ElementPlusResolver 按需，二选一）；PC 管理端与 API 独立，共享 packages/contracts。"
+
+commands:
+  install: "pnpm install"
+  dev: "pnpm dev:web"
+  test: "pnpm typecheck"
+
+architecture:
+  style: layered
+  pattern: modular-monolith
+
+starter:
+  enabled: true
+  mode: mock-first
+  template_dirs:
+    - dir: vue-workspace-root
+      target: ""
+    - dir: vue-element-plus-web
+      target: "apps/web"
+    - dir: nitro-server-standalone
+      target: "apps/api"

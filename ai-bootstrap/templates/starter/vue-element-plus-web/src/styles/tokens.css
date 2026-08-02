@@ -1,0 +1,36 @@
+/* ── Element Plus 2.x 设计令牌：--el-* CSS 变量覆盖 ──
+ * 语义色与 docs/00-research/design-token-spec.md 一致（enterprise-ops-desk preset）；
+ * 官方主题入口：:root 全局覆盖或组件类名作用域覆盖（如 .my-card { --el-card-bg-color: ... }）；
+ * 需要编译期定制时可用 SCSS：@use 'element-plus/theme-chalk/src/common/var.scss' with (...) 并 @forward 覆盖。
+ */
+:root {
+  /* 语义色 */
+  --el-color-primary: #2563eb;
+  --el-color-primary-light-3: #5b8def;
+  --el-color-primary-light-5: #85aaf4;
+  --el-color-primary-light-7: #b3c9f8;
+  --el-color-primary-light-8: #c9d9fa;
+  --el-color-primary-light-9: #e8effd;
+  --el-color-primary-dark-2: #1d4ed8;
+  --el-color-success: #15803d;
+  --el-color-warning: #b45309;
+  --el-color-danger: #b42318;
+  --el-color-error: #b42318;
+
+  /* 文本与表面 */
+  --el-text-color-primary: #172033;
+  --el-text-color-regular: #475467;
+  --el-text-color-secondary: #667085;
+  --el-text-color-placeholder: #98a2b3;
+  --el-border-color: #d8dee9;
+  --el-border-color-light: #e4e9f2;
+  --el-border-color-lighter: #eef2f7;
+  --el-fill-color-blank: #ffffff;
+  --el-bg-color: #f6f8fc;
+  --el-bg-color-page: #f6f8fc;
+
+  /* 形状 */
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 6px;
+  --el-border-radius-round: 999px;
+}

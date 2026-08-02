@@ -414,6 +414,10 @@ body {
         )
         for replacement in DEPRECATED_COMPONENTS.values():
             self.assertIn(replacement, all_notes, f"约束说明缺少替代名 {replacement}")
+        # UI 栈官方范式约束必须齐全（nuxt-ui / vant / element-plus / antd）
+        registered = {item.get("library") for item in FRAMEWORK_CONSTRAINTS}
+        for library in ("@nuxt/ui", "vant", "element-plus", "antd"):
+            self.assertIn(library, registered, f"FRAMEWORK_CONSTRAINTS 缺少 {library} 约束")
 
     def test_nuxt_starter_renders_framework_constraints_and_passes_gate(self):
         """Nuxt 生成项目：DESIGN.md 记录 UFormField 约束；源码不含 UFormGroup；gate 校验通过。"""
@@ -560,6 +564,179 @@ body {
             self.assertEqual(vant_check["status"], "failed")
             errors_text = "\n".join(vant_check["errors"])
             self.assertIn("混用", errors_text)
+
+
+
+    # ── Element Plus / Ant Design 官方范式（P0）────────────────────────────────
+
+    def test_vue_element_plus_blueprint_generates_ep_starter(self):
+        """vue-element-plus-nitro 生成：Element Plus 2.x 官方范式 + --el-* 令牌 + mock-first 页面，validate 全 passed。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-ep-starter-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "vue-element-plus-nitro",
+                "--name", "EPDemo", "--agents", "codex,cursor",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            root_pkg = (Path(project) / "package.json").read_text(encoding="utf-8")
+            self.assertIn('"name": "epdemo"', root_pkg)
+            self.assertNotIn("{{", root_pkg)
+            web = Path(project) / "apps" / "web"
+            self.assertTrue((web / "package.json").exists())
+            self.assertTrue((web / "src" / "main.ts").exists())
+            self.assertTrue((web / "src" / "styles" / "tokens.css").exists())
+            self.assertTrue((Path(project) / "apps" / "api" / "package.json").exists())
+
+            # Element Plus 2.x 官方完整引入范式
+            pkg = (web / "package.json").read_text(encoding="utf-8")
+            self.assertIn('"element-plus"', pkg)
+            self.assertNotIn("babel-plugin-import", pkg)
+            main_ts = (web / "src" / "main.ts").read_text(encoding="utf-8")
+            self.assertIn("element-plus/dist/index.css", main_ts)
+            self.assertIn("app.use(ElementPlus)", main_ts)
+            self.assertNotIn("VantResolver", main_ts)
+
+            # 设计令牌：--el-* 全局覆盖 + 官方 ConfigProvider locale + Volar 类型
+            tokens = (web / "src" / "styles" / "tokens.css").read_text(encoding="utf-8")
+            self.assertIn("--el-color-primary", tokens)
+            app_vue = (web / "src" / "App.vue").read_text(encoding="utf-8")
+            self.assertIn("el-config-provider", app_vue)
+            self.assertIn("zhCn", app_vue)
+            tsconfig = (web / "tsconfig.json").read_text(encoding="utf-8")
+            self.assertIn("element-plus/global", tsconfig)
+
+            # 组件基线
+            views_text = "\n".join(
+                f.read_text(encoding="utf-8") for f in (web / "src" / "views").rglob("*.vue")
+            )
+            self.assertIn("<el-table", views_text)
+            self.assertIn("<el-button", views_text)
+            self.assertIn("<el-dialog", views_text)
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            report = json.loads(validation.stdout)
+            self.assertEqual(report["status"], "passed")
+            ep_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+            )
+            self.assertEqual(ep_check["status"], "passed", ep_check.get("warnings"))
+
+    def test_element_plus_conformance_rejects_mixed_import_anti_pattern(self):
+        """负向测试：全量 css 与 ElementPlusResolver 按需引入混用必须被 ui-stack-conformance 拦截。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-ep-fail-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "vue-element-plus-nitro",
+                "--name", "EPDemo", "--agents", "codex,cursor",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            web = Path(project) / "apps" / "web"
+            vite_cfg = web / "vite.config.ts"
+            vite_cfg.write_text(
+                vite_cfg.read_text(encoding="utf-8").replace(
+                    "plugins: [vue()],",
+                    "plugins: [vue(), Components({ resolvers: [ElementPlusResolver()] })],",
+                ),
+                encoding="utf-8",
+            )
+            pkg_path = web / "package.json"
+            pkg = json.loads(pkg_path.read_text(encoding="utf-8"))
+            pkg["devDependencies"]["unplugin-vue-components"] = "^28.0.0"
+            pkg["devDependencies"]["unplugin-auto-import"] = "^19.0.0"
+            pkg_path.write_text(json.dumps(pkg, indent=2), encoding="utf-8")
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            report = json.loads(validation.stdout)
+            self.assertEqual(report["status"], "failed")
+            ep_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+            )
+            self.assertEqual(ep_check["status"], "failed")
+            errors_text = "\n".join(ep_check["errors"])
+            self.assertIn("混用", errors_text)
+
+    def test_react_springboot_blueprint_generates_antd_starter(self):
+        """react-springboot 生成：Ant Design v6 官方范式（ConfigProvider theme.token + zhCN + dayjs，无 v5-patch），validate 全 passed。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-antd-starter-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "react-springboot",
+                "--name", "AntDemo", "--agents", "codex,cursor",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            frontend = Path(project) / "frontend"
+            self.assertTrue((frontend / "package.json").exists())
+            self.assertTrue((frontend / "src" / "main.tsx").exists())
+            self.assertTrue((frontend / "src" / "theme.ts").exists())
+            self.assertIn(
+                '"name": "antdemo-frontend"',
+                (frontend / "package.json").read_text(encoding="utf-8"),
+            )
+
+            pkg = (frontend / "package.json").read_text(encoding="utf-8")
+            self.assertIn('"antd"', pkg)
+            self.assertIn("@ant-design/icons", pkg)
+            self.assertNotIn("@ant-design/v5-patch-for-react-19", pkg)
+
+            main_tsx = (frontend / "src" / "main.tsx").read_text(encoding="utf-8")
+            self.assertIn("ConfigProvider", main_tsx)
+            self.assertIn("locale={zhCN}", main_tsx)
+            self.assertIn("dayjs.locale", main_tsx)
+            theme_ts = (frontend / "src" / "theme.ts").read_text(encoding="utf-8")
+            self.assertIn("colorPrimary", theme_ts)
+            self.assertIn("algorithm", theme_ts)
+
+            app_tsx = (frontend / "src" / "App.tsx").read_text(encoding="utf-8")
+            self.assertIn("items={menuItems}", app_tsx)
+            self.assertIn("{'AntDemo'}", app_tsx)  # {{PROJECT_NAME}} 占位符已渲染
+            self.assertNotIn("{{PROJECT", app_tsx)
+            jobs_tsx = (frontend / "src" / "views" / "Jobs.tsx").read_text(encoding="utf-8")
+            self.assertIn("<Table", jobs_tsx)
+            self.assertIn("<Card", jobs_tsx)
+            self.assertIn('variant="outlined"', jobs_tsx)  # v6 写法（取代 v5 bordered）
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            report = json.loads(validation.stdout)
+            self.assertEqual(report["status"], "passed")
+            antd_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+            )
+            self.assertEqual(antd_check["status"], "passed", antd_check.get("warnings"))
+
+    def test_antd_conformance_rejects_v5_patch_and_deprecated_api(self):
+        """负向测试：注入 v5-patch-for-react-19 与 v5 弃用属性必须被 ui-stack-conformance 拦截。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-antd-fail-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "react-springboot",
+                "--name", "AntDemo", "--agents", "codex,cursor",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            frontend = Path(project) / "frontend"
+            pkg_path = frontend / "package.json"
+            pkg = json.loads(pkg_path.read_text(encoding="utf-8"))
+            pkg["dependencies"]["@ant-design/v5-patch-for-react-19"] = "^1.0.3"
+            pkg_path.write_text(json.dumps(pkg, indent=2), encoding="utf-8")
+            login = frontend / "src" / "views" / "Login.tsx"
+            login.write_text(
+                login.read_text(encoding="utf-8")
+                + "\n      <Input bordered placeholder=\"v5 写法\" />\n",
+                encoding="utf-8",
+            )
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            report = json.loads(validation.stdout)
+            self.assertEqual(report["status"], "failed")
+            antd_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+            )
+            self.assertEqual(antd_check["status"], "failed")
+            errors_text = "\n".join(antd_check["errors"])
+            self.assertIn("v5-patch-for-react-19", errors_text)
+            self.assertIn("bordered", errors_text)
 
 
 if __name__ == "__main__":

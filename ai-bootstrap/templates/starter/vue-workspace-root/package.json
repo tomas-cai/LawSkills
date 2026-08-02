@@ -1,0 +1,20 @@
+{
+  "name": "{{PROJECT_SLUG}}",
+  "private": true,
+  "version": "1.0.0",
+  "description": "{{PROJECT_DESCRIPTION}}",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm dev:web",
+    "dev:web": "pnpm --filter @{{PROJECT_SLUG}}/web dev",
+    "dev:api": "pnpm --filter @{{PROJECT_SLUG}}/api dev",
+    "build": "pnpm --filter @{{PROJECT_SLUG}}/web build && pnpm --filter @{{PROJECT_SLUG}}/api build",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  },
+  "packageManager": "pnpm@10.33.4"
+}

@@ -1,12 +1,12 @@
-# react-springboot Blueprint v1.0.0
-# React (Vite) + Ant Design + Spring Boot + PostgreSQL/MySQL
+# react-springboot Blueprint v1.1.0
+# React (Vite) + Ant Design v6 + Spring Boot + PostgreSQL/MySQL
 
 id: react-springboot
 name: React + Spring Boot
-version: 1.0.0
-description: "企业级 React SPA + Spring Boot + PostgreSQL/MySQL"
+version: 1.1.0
+description: "企业级 React SPA（Ant Design 6）+ Spring Boot + PostgreSQL/MySQL"
 author: "AI Bootstrap"
-tags: [react, java, spring-boot, enterprise, typescript, web]
+tags: [react, java, spring-boot, ant-design, enterprise, typescript, web]
 
 stack:
   frontend:
@@ -49,9 +49,10 @@ design_system:
   icon_library: "@ant-design/icons"
   color_mode: light-dark
   token_preset: enterprise-console
+  official_paradigm: "Ant Design v6 官方快速上手范式（ant.design + migration-v6）：import { ConfigProvider, ... } from 'antd' + import zhCN from 'antd/locale/zh_CN' + import 'dayjs/locale/zh-cn' + dayjs.locale('zh-cn')；antd 默认 ES modules tree shaking，import { Button } from 'antd' 即按需；主题入口 ConfigProvider theme={ token, algorithm }（Design Token；v6 默认启用 CSS variables，可显式 cssVar: true）；v6 必须移除 @ant-design/v5-patch-for-react-19，@ant-design/icons 需 >= 6；弃用 API：bordered → variant、size='default' → 'medium'、children 列表 → items、dropdownClassName → classNames.popup.root、Button iconPosition → iconPlacement、Space direction → orientation"
   theme_entry:
     framework: frontend/src/main.tsx
-    global_tokens: frontend/src/styles/tokens.css
+    global_tokens: frontend/src/theme.ts（ConfigProvider theme.token + algorithm）
     components: ConfigProvider + AntD theme tokens
   component_baseline: [button, input, card, table, form, dialog, navigation, badge, empty/error]
 
@@ -62,16 +63,23 @@ architecture:
 layout:
   source_root: .
   key_dirs:
-    frontend/: "React + Vite 前端应用"
+    frontend/: "React + Vite 前端应用（Ant Design 6）"
     frontend/src/: "前端源码"
     frontend/public/: "Vite 公共静态资源"
     backend/: "Spring Boot Maven 工程"
     backend/src/main/java/: "Java 包结构（controller、service、repository、entity）"
     backend/src/main/resources/: "application.yml 与资源文件"
     backend/src/test/java/: "JUnit 测试"
-  conventions: "严格遵循 Spring Boot 官方 Maven 目录约定：src/main/java、src/main/resources、src/test/java。"
+  conventions: "严格遵循 Spring Boot 官方 Maven 目录约定：src/main/java、src/main/resources、src/test/java；前端遵循 Vite src/public 约定与 Ant Design v6 官方快速上手范式（ConfigProvider + theme token + zhCN/dayjs locale）。"
 
 commands:
   install: "pnpm --dir frontend install && mvn -f backend/pom.xml clean package"
   dev: "pnpm --dir frontend dev"
   test: "pnpm --dir frontend test && mvn -f backend/pom.xml test"
+
+starter:
+  enabled: true
+  mode: mock-first
+  template_dirs:
+    - dir: react-antd-web
+      target: "frontend"

@@ -20,6 +20,8 @@
 | Vue + Naive UI | `NConfigProvider` theme overrides + 全局 CSS variables | 组件主题覆盖必须可追溯到语义 token |
 | uni-app + uni-ui | `uni.scss` + CSS variables + uni-ui 组件主题 | 多端共用一个令牌来源，但各端按平台能力单独验收 |
 | Vant 4 | CSS variables + 按需引入的组件主题 | 移动端优先校验触控目标、安全区和底部导航 |
+| Vue + Element Plus | 全局 CSS variables（`--el-*`）+ `el-config-provider` | 组件主题覆盖必须在类名作用域的 `--el-*` 变量或 SCSS `@use ... with (...)` 中，禁止散落 hex |
+| React + Ant Design v6 | `ConfigProvider` `theme`（`token` + `algorithm`，+ cssVar） | antd 组件色只由 `theme.token` 驱动；页面不直接改 antd 组件默认色 |
 | Tailwind | CSS variables + Tailwind theme mapping | Tailwind 是映射层，不是设计决策来源 |
 
 如果 Blueprint 使用了未列出的组合，先寻找该库官方 theme/config/provider 入口；不要用零散 CSS 覆盖替代主题层。

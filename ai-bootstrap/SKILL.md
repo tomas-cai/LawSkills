@@ -1,6 +1,6 @@
 ---
 name: ai-bootstrap
-version: "1.7.0"
+version: "1.8.0"
 description: >
   AI Native Engineering Bootstrap System.
   为 AI 建立长期、统一、可治理的软件工程上下文。
@@ -49,11 +49,13 @@ description: >
 - **JWT + author 鉴权（mock-first）**: 登录、注册、当前用户、退出；默认 `author` 角色；前端路由守卫；后续可切换为真实 JWT API（HttpOnly Cookie + Bearer）。
 - **项目新建 / 编辑（mock-first）**: 客户项目列表、新建、编辑；Mock adapter 模拟加载、失败、ID 和状态迁移，切换 API 时保持同一 port 契约。
 - 实现边界沿用上面的 Mock/API 双 adapter 规则：页面 → composable → port（Mock adapter / API adapter）。
-- 若 Blueprint 声明 `starter`，`generate.py` 在全新项目生成时自动复制 `templates/starter/` 下的基线模板：单应用用 `template_dir`，多应用单仓用 `template_dirs`（复制根 + 各 `apps/<id>/` 目录），`.vue/.ts/.js/.json/.md/.yaml/.css` 等文本文件复制时渲染 `{{VARIABLE}}`；用 `--no-starter` 可关闭，`--starter` 可强制开启。
+- 若 Blueprint 声明 `starter`，`generate.py` 在全新项目生成时自动复制 `templates/starter/` 下的基线模板：单应用用 `template_dir`，多应用单仓用 `template_dirs`（复制根 + 各 `apps/<id>/` 目录），`.vue/.ts/.tsx/.js/.jsx/.json/.md/.yaml/.css` 等文本文件复制时渲染 `{{VARIABLE}}`；用 `--no-starter` 可关闭，`--starter` 可强制开启。
 - 多应用单仓（`monorepo: turbo`）默认生成：pnpm workspace + Turborepo 根、Nuxt 4 前台/后台（DEMO 视觉基线：主题入口、字体插件、布局、核心组件、种子数据）、Nitro standalone API。**Nitro ≥2.13 的路由放在根级 `routes/` 与 `routes/api/`，不再自动扫描 `server/`**。
 - **UI 栈官方范式（ui-stack-conformance）**: 每个前端 UI 库都按**官方 starter/quickstart 范式**初始化瘦 DEMO，并自动拦截偏离官方做法的生成品：
   - **Nuxt UI（v4 / Tailwind v4）**: `main.css` 使用 `@import "tailwindcss" theme(static)` + `@import "@nuxt/ui"` + `@theme static` 注册品牌全色阶；`app.config.ts` 声明 `ui.colors` 语义色映射；`nuxt.config.ts` 注册 `ui.theme.colors`；依赖补齐 `tailwindcss` 与 `@iconify-json/*` 图标集；只使用 `bg-primary` / `text-muted` / `border-default` 语义工具类，并标配 `app/error.vue`（UApp + UError）。拦截遗留 `--mc-*` 令牌、缺失 tailwindcss、未接入 `@nuxt/ui` 等。
   - **Vant 4（移动端 / uni-app）**: 按 Vant 4 官方 quickstart 与 vant-demo 范式初始化：`src/main.ts` 全量 `import 'vant/lib/index.css'` + `app.use(Button)` 按需注册组件（官方推荐，Tree Shaking 默认可用）；体积极致时改用 `unplugin-vue-components` + `@vant/auto-import-resolver`（`VantResolver`）按需引入（此时不引入全量 css）；主题用 700+ 个 `--van-*` CSS 变量（`App.vue` `:root` 全局覆盖 + `<van-config-provider :theme-vars>` 组件级）；函数式 API `showToast` / `showDialog`。拦截 `babel-plugin-import`（Vant 4 已移除）与全量 css + VantResolver 混用。
+  - **Element Plus 2.x（Vue3 PC 管理端）**: 按 Element Plus 官方 quickstart 与 theming 范式初始化（`vue-element-plus-nitro` Blueprint 内置 `apps/web` starter）：完整引入 `import ElementPlus from 'element-plus'` + `import 'element-plus/dist/index.css'` + `app.use(ElementPlus)`（快速开始，官方推荐）；体积极致时改用 `unplugin-vue-components` + `unplugin-auto-import` + `ElementPlusResolver`（来自 `unplugin-vue-components/resolvers`）按需引入（不引入全量 css）；主题用 `--el-*` CSS 变量（`src/styles/tokens.css` `:root` 全局覆盖 + 组件类名作用域覆盖）或 SCSS `@use ... with (...)`；`el-config-provider` 注入 zhCn locale；tsconfig `compilerOptions.types` 含 `element-plus/global`（Volar）。拦截 `babel-plugin-import` 与全量 css + ElementPlusResolver 混用。
+  - **Ant Design v6（React 企业级）**: 按 Ant Design v6 官方快速上手与 migration-v6 范式初始化（`react-springboot` Blueprint 内置 `frontend/` starter）：`main.tsx` 用 `ConfigProvider locale={zhCN}` + `theme`（`token` + `algorithm`，Design Token 入口，v6 默认 CSS variables）+ `dayjs.locale('zh-cn')`；`import { Button } from 'antd'` 即按需（ES modules tree shaking，无 babel-plugin-import）；组件色只由 `theme.token` 驱动，`src/theme.ts` 集中定义；v6 必须移除 `@ant-design/v5-patch-for-react-19`，`@ant-design/icons` >= 6；v6 弃用 API：`bordered` → `variant`、`size='default'` → `'medium'`、children 列表 → `items`、`dropdownClassName` → `classNames.popup.root`、`iconPosition` → `iconPlacement`、Space `direction` → `orientation`。
 - 升级到真实 API 的路径见 `references/basic-feature-baseline.md`。
 
 已在 `nuxt-ai-fullstack` Blueprint 中内置 `multi-app-monorepo`、`jwt + author`、`project-create-edit` 与 `demo-visual-baseline` 基线。
@@ -245,6 +247,7 @@ Blueprint 定义在 `templates/blueprints/` 目录下，每个 Blueprint 一个�
 - `python-ml-service.yaml` — Python + FastAPI + PyTorch
 - `nuxt-ai-fullstack.yaml` — Nuxt 4 + Nuxt UI + Nitro + Vercel AI SDK + SQLite/Turso + Drizzle
 - `uni-app-nitro.yaml` — uni-app + Vue3 + Vant 4 + uni-ui + Nitro + SQLite/Turso + Vercel AI SDK
+- `vue-element-plus-nitro.yaml` — Vue3 + Vite + Element Plus 2.x + Nitro + SQLite/Turso + Vercel AI SDK
 
 ### Blueprint 格式
 
@@ -303,7 +306,7 @@ starter:
 - `enabled`: 是否默认启用。
 - `mode`: `mock-first` 或 `api`。
 - `template_dir`: 单应用场景：`templates/starter/` 下的子目录名，文本文件按原样复制。
-- `template_dirs`: 多应用单仓场景：`{dir, target}` 列表，`dir` 是 `templates/starter/` 下的子目录，`target` 是复制到项目里的相对路径（如 `apps/app-web-hr`）；`.vue/.ts/.js/.json/.md/.yaml/.css` 等文本文件复制时渲染 `{{VARIABLE}}`（如 `{{PROJECT_NAME}}`、`{{PROJECT_SLUG}}`）。
+- `template_dirs`: 多应用单仓场景：`{dir, target}` 列表，`dir` 是 `templates/starter/` 下的子目录，`target` 是复制到项目里的相对路径（如 `apps/app-web-hr`）；`.vue/.ts/.tsx/.js/.jsx/.json/.md/.yaml/.css` 等文本文件复制时渲染 `{{VARIABLE}}`（如 `{{PROJECT_NAME}}`、`{{PROJECT_SLUG}}`）。
 - `monorepo_dir`: 多应用根目录模板（pnpm workspace + Turborepo）。
 - `features`: 基础功能清单，用于生成说明与 manifest。
 - Blueprint 还可声明 `apps:` 列表（`id/name/kind/port/starter_dir/checks`）；`generate.py` 会把它写入 manifest，`smoke.py` 据此探测各应用端口。
@@ -400,7 +403,7 @@ python3 <skill-dir>/scripts/detect.py --dir /path/to/project
 - 展示推荐方案、至少一个替代方案、完整技术组合、优点和代价
 - 等用户确认后再确定 Blueprint
 
-若 Blueprint 包含前端，在生成前读取 `references/design-token-guide.md`，检查 Blueprint 的 `design_system` 字段，并将其落实为设计令牌规范。不得把 Nuxt UI、Vant、shadcn、Naive UI 或其他 UI 库的默认主题直接当作产品最终视觉系统。
+若 Blueprint 包含前端，在生成前读取 `references/design-token-guide.md`，检查 Blueprint 的 `design_system` 字段，并将其落实为设计令牌规范。不得把 Nuxt UI、Vant、Element Plus、Ant Design、shadcn、Naive UI 或其他 UI 库的默认主题直接当作产品最终视觉系统。
 
 如用户提出自定义技术栈，先将其归并成一个临时方案摘要；不得因为用户说了某个框架就自行补齐未确认的数据库、部署或 AI SDK。
 

@@ -1016,6 +1016,8 @@ def check_ui_stack_conformance(project_path: Path, report: ValidationReport) -> 
     """Dispatch UI-stack conformance checks for every declared UI library."""
     _check_nuxt_ui_conformance(project_path, report)
     _check_vant_conformance(project_path, report)
+    _check_element_plus_conformance(project_path, report)
+    _check_antd_conformance(project_path, report)
 
 
 def _check_nuxt_ui_conformance(project_path: Path, report: ValidationReport) -> None:
@@ -1288,6 +1290,301 @@ def _check_vant_conformance(project_path: Path, report: ValidationReport) -> Non
 
 
 
+
+def _check_element_plus_conformance(project_path: Path, report: ValidationReport) -> None:
+    """Verify Element Plus 2.x apps follow the official quickstart paradigm.
+
+    Official paradigm (element-plus.org/zh-CN/guide/quickstart.html + theming):
+    - 完整引入（快速开始，官方推荐）: src/main.ts import ElementPlus from 'element-plus'
+      + import 'element-plus/dist/index.css' + app.use(ElementPlus)
+    - 按需用法（体积极致）: unplugin-vue-components + unplugin-auto-import + ElementPlusResolver
+      （来自 unplugin-vue-components/resolvers），此时不引入全量 css 且 vite.config 需配置插件
+    - 反模式: 全量 css 与 ElementPlusResolver 混用；babel-plugin-import
+    - 主题: --el-* CSS 变量（:root 全局覆盖或组件类名作用域覆盖）或 SCSS @use ... with (...)
+    - Volar 类型: tsconfig compilerOptions.types 含 element-plus/global
+    - 中文 locale: element-plus/es/locale/lang/zh-cn 经 el-config-provider 或 app.use 选项注入
+    """
+    check = ValidationCheck(
+        "ui-stack-conformance",
+        "Verify Element Plus 2.x apps follow the official quickstart paradigm (element-plus/dist/index.css + app.use(ElementPlus) or ElementPlusResolver; no babel-plugin-import; --el-* tokens)",
+    )
+
+    element_apps = _apps_of_kind(project_path, "element-plus")
+    if not element_apps:
+        check.status = "skipped"
+        check.details = {"element_plus_apps": 0, "reason": "no element-plus apps declared"}
+        report.add_check(check)
+        return
+
+    issues = []
+    warnings = []
+    details = []
+    for app in element_apps:
+        deps = _package_deps(app)
+        app_src = app / "src"
+        main_ts = app_src / "main.ts"
+        main_text = main_ts.read_text(encoding="utf-8", errors="replace") if main_ts.exists() else ""
+        vite_cfg = app / "vite.config.ts"
+        vite_text = vite_cfg.read_text(encoding="utf-8", errors="replace") if vite_cfg.exists() else ""
+        app_issues = []
+        app_warnings = []
+
+        has_full_css = "element-plus/dist/index.css" in main_text
+        # 仅统计实际配置的 resolver 调用（ElementPlusResolver()），注释提及不算
+        has_resolver = "ElementPlusResolver(" in vite_text
+        has_auto_import = any(
+            k in deps for k in ("unplugin-vue-components", "unplugin-auto-import")
+        )
+
+        # 1) 官方引入范式（二选一，禁止混用）
+        if not main_text:
+            app_issues.append(f"{app.name}: 缺少 src/main.ts（Element Plus 官方范式入口）")
+        elif not has_full_css and not (has_resolver and has_auto_import):
+            app_issues.append(
+                f"{app.name}: 未按 Element Plus 2.x 官方范式接入——完整引入需在 src/main.ts 引入 "
+                "'element-plus/dist/index.css' 并 app.use(ElementPlus)，或按需用法配置 "
+                "unplugin-vue-components + unplugin-auto-import + ElementPlusResolver（不引入全量 css）"
+            )
+        elif has_full_css and has_resolver:
+            app_issues.append(
+                f"{app.name}: 全量 element-plus/dist/index.css 与 ElementPlusResolver 按需引入混用"
+                "（反模式：组件重复注册、样式错乱）"
+            )
+
+        # 2) 反模式依赖
+        if "babel-plugin-import" in deps:
+            app_issues.append(f"{app.name}: 仍依赖 babel-plugin-import（Element Plus 官方已弃用，按 quickstart 二选一接入）")
+
+        # 3) 主题令牌：--el-* CSS 变量（styles/tokens.css / App.vue 等）
+        token_files = []
+        for base_dir in ("src",):
+            base = app / base_dir
+            if not base.is_dir():
+                continue
+            for f in sorted(base.rglob("*")):
+                if f.suffix not in {".css", ".scss", ".vue", ".ts"}:
+                    continue
+                if any(part in {"node_modules", "dist"} for part in f.parts):
+                    continue
+                try:
+                    if "--el-" in f.read_text(encoding="utf-8", errors="replace"):
+                        token_files.append(str(f.relative_to(app)))
+                except Exception:
+                    continue
+        if not token_files:
+            app_warnings.append(
+                f"{app.name}: 未定义 --el-* 设计令牌（Element Plus 主题定制应使用 --el-* CSS 变量："
+                ":root 全局覆盖或组件类名作用域覆盖，或 SCSS @use 'element-plus/theme-chalk/src/common/var.scss' with (...)")
+        # 4) Volar 全局组件类型
+        tsconfig_text = ""
+        for cfg in ("tsconfig.json", "tsconfig.app.json", "tsconfig.web.json"):
+            f = app / cfg
+            if f.exists():
+                tsconfig_text = f.read_text(encoding="utf-8", errors="replace")
+                break
+        if "element-plus/global" not in tsconfig_text:
+            app_warnings.append(
+                f"{app.name}: tsconfig compilerOptions.types 未包含 element-plus/global（Volar 无法获得全局组件类型）"
+            )
+
+        # 5) 组件基线与 locale
+        sources_text = ""
+        for src_dir in ("src", "components", "pages", "views"):
+            base = app / src_dir
+            if not base.is_dir():
+                continue
+            for f in sorted(base.rglob("*.vue")):
+                try:
+                    sources_text += f.read_text(encoding="utf-8", errors="replace")
+                except Exception:
+                    continue
+        if "<el-" not in sources_text:
+            app_warnings.append(f"{app.name}: 源码未使用 <el-* 组件（Element Plus 组件基线缺失）")
+        if "el-config-provider" not in sources_text and "zhCn" not in (main_text + sources_text) and "zh-cn" not in main_text:
+            app_warnings.append(f'{app.name}: 未注入中文 locale（建议 el-config-provider :locale="zhCn" 或 app.use(ElementPlus, {{locale}})）')
+
+        details.append({
+            "app": app.name,
+            "has_full_css": has_full_css,
+            "has_resolver": has_resolver,
+            "has_auto_import_deps": has_auto_import,
+            "token_files": token_files,
+            "uses_el_components": "<el-" in sources_text,
+            "has_config_provider": "el-config-provider" in sources_text,
+            "tsconfig_has_global_types": "element-plus/global" in tsconfig_text,
+        })
+        issues.extend(app_issues)
+        warnings.extend(app_warnings)
+
+    check.details = {
+        "element_plus_apps": len(element_apps),
+        "apps": details,
+        "official_pattern": "https://element-plus.org/zh-CN/guide/quickstart.html + theming",
+    }
+    if issues:
+        check.status = "failed"
+        check.errors = issues[:20]
+        check.warnings = warnings[:20]
+    elif warnings:
+        check.status = "warning"
+        check.warnings = warnings[:20]
+    else:
+        check.status = "passed"
+    report.add_check(check)
+
+
+def _check_antd_conformance(project_path: Path, report: ValidationReport) -> None:
+    """Verify Ant Design v6 apps follow the official quickstart / migration-v6 paradigm.
+
+    Official paradigm (ant.design + antd docs '快速上手' + migration-v6):
+    - main.tsx: ConfigProvider locale={zhCN} + theme={{ token, algorithm }} + dayjs.locale('zh-cn')
+    - antd 默认 ES modules tree shaking：import { Button } from 'antd' 即按需，无 babel-plugin-import
+    - v6 必须移除 @ant-design/v5-patch-for-react-19；@ant-design/icons >= 6
+    - v6 弃用 API：bordered → variant、size='default' → 'medium'、children 列表 → items、
+      dropdownClassName → classNames.popup.root、Button iconPosition → iconPlacement、Space direction → orientation
+    - 组件色只由 ConfigProvider theme.token 驱动，页面不散落 hex 直接覆盖 antd 组件默认色
+    """
+    check = ValidationCheck(
+        "ui-stack-conformance",
+        "Verify Ant Design v6 apps follow the official quickstart paradigm (ConfigProvider theme.token + zhCN/dayjs locale; no v5-patch-for-react-19; no v5 deprecated APIs)",
+    )
+
+    antd_apps = list(_apps_of_kind(project_path, "antd"))
+    # react-springboot 等非 apps/ 布局：frontend/ 独立目录也要纳入扫描
+    frontend_dir = project_path / "frontend"
+    if frontend_dir.is_dir() and "antd" in _package_deps(frontend_dir) and frontend_dir not in antd_apps:
+        antd_apps.append(frontend_dir)
+    if not antd_apps:
+        check.status = "skipped"
+        check.details = {"antd_apps": 0, "reason": "no antd apps declared"}
+        report.add_check(check)
+        return
+
+    def _major(v: str) -> int:
+        digits = "".join(ch for ch in str(v) if ch.isdigit())
+        return int(digits[:2]) if digits else 0
+
+    issues = []
+    warnings = []
+    details = []
+    for app in antd_apps:
+        app_src = app / "src"
+        main_tsx = app_src / "main.tsx"
+        main_text = main_tsx.read_text(encoding="utf-8", errors="replace") if main_tsx.exists() else ""
+        deps = _package_deps(app)
+        app_issues = []
+        app_warnings = []
+
+        # 1) 官方入口与 locale
+        if not main_text:
+            app_issues.append(f"{app.name}: 缺少 src/main.tsx（Ant Design 官方范式入口：ConfigProvider + locale + theme）")
+        else:
+            if "ConfigProvider" not in main_text:
+                app_issues.append(f"{app.name}: main.tsx 缺少 ConfigProvider（官方快速上手必需）")
+            if "zhCN" not in main_text:
+                app_issues.append(f"{app.name}: main.tsx 缺少中文 locale（import zhCN from 'antd/locale/zh_CN'）")
+            if "dayjs.locale" not in main_text:
+                app_issues.append(f"{app.name}: main.tsx 缺少 dayjs.locale('zh-cn')（日期组件中文必需）")
+
+        # 2) 主题 token 入口
+        theme_sources = ""
+        for f in (app_src / "theme.ts", app_src / "theme.tsx", main_tsx):
+            if f and f.exists():
+                theme_sources += f.read_text(encoding="utf-8", errors="replace")
+        has_color_primary = "colorPrimary" in theme_sources
+        has_theme_prop = "theme=" in main_text or "theme={" in main_text
+        if not has_color_primary or not has_theme_prop:
+            app_warnings.append(
+                f"{app.name}: 未发现 ConfigProvider theme={{ token, algorithm }} 设计令牌入口"
+                "（建议 src/theme.ts 导出 ThemeConfig，组件色只由 theme.token 驱动）"
+            )
+
+        # 3) v6 必须移除 v5-patch-for-react-19
+        if "@ant-design/v5-patch-for-react-19" in deps:
+            app_issues.append(
+                f"{app.name}: 仍依赖 @ant-design/v5-patch-for-react-19（仅 Ant Design v5 需要，v6 必须移除）"
+            )
+
+        # 4) @ant-design/icons 版本
+        icons_ver = deps.get("@ant-design/icons", "")
+        if icons_ver and _major(icons_ver) < 6:
+            app_issues.append(f"{app.name}: @ant-design/icons {icons_ver} 版本过低，Ant Design v6 需 >= 6")
+        elif not icons_ver:
+            app_warnings.append(f"{app.name}: 未声明 @ant-design/icons（图标建议显式安装 @ant-design/icons >= 6）")
+
+        # 5) v5 弃用 API 扫描
+        deprecated_hits = []
+        for f in sorted(app_src.rglob("*")):
+            if f.suffix not in {".tsx", ".ts", ".jsx", ".js"}:
+                continue
+            if any(part in {"node_modules", "dist"} for part in f.parts):
+                continue
+            try:
+                lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+            except Exception:
+                continue
+            for idx, line in enumerate(lines, start=1):
+                rel = f.relative_to(app)
+                if re.search(r"\bbordered\b", line):
+                    deprecated_hits.append(f"{rel}:{idx}: 使用 v5 弃用属性 bordered，v6 应改用 variant")
+                if re.search(r"size=[\"']default[\"']", line):
+                    deprecated_hits.append(f"{rel}:{idx}: 使用 v5 弃用值 size=\"default\"，v6 应改用 \"medium\"")
+                if "iconPosition" in line:
+                    deprecated_hits.append(f"{rel}:{idx}: 使用 v5 弃用属性 iconPosition，v6 应改用 iconPlacement")
+                if "dropdownClassName" in line:
+                    deprecated_hits.append(f"{rel}:{idx}: 使用 v5 弃用属性 dropdownClassName，v6 应改用 classNames.popup.root")
+                if re.search(r"<Space[^>]*\bdirection=", line):
+                    deprecated_hits.append(f"{rel}:{idx}: Space 使用 v5 弃用属性 direction，v6 应改用 orientation")
+        for hit in deprecated_hits[:10]:
+            app_issues.append(f"{app.name}: {hit}")
+
+        # 6) 组件基线
+        sources_text = ""
+        for f in sorted(app_src.rglob("*")):
+            if f.suffix not in {".tsx", ".ts", ".jsx", ".js"}:
+                continue
+            if any(part in {"node_modules", "dist"} for part in f.parts):
+                continue
+            try:
+                sources_text += f.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                continue
+        if "<Button" not in sources_text:
+            app_warnings.append(f"{app.name}: 源码未使用 <Button（Ant Design 组件基线缺失）")
+        if "<Table" not in sources_text:
+            app_warnings.append(f"{app.name}: 源码未使用 <Table（Ant Design 组件基线缺失）")
+        if "<Card" not in sources_text:
+            app_warnings.append(f"{app.name}: 源码未使用 <Card（Ant Design 组件基线缺失）")
+
+        details.append({
+            "app": str(app.relative_to(project_path)),
+            "has_config_provider": "ConfigProvider" in main_text,
+            "has_zh_locale": "zhCN" in main_text and "dayjs.locale" in main_text,
+            "has_theme_token": has_color_primary,
+            "v5_patch_dep": "@ant-design/v5-patch-for-react-19" in deps,
+            "icons_version": icons_ver or None,
+            "deprecated_hits": len(deprecated_hits),
+        })
+        issues.extend(app_issues)
+        warnings.extend(app_warnings)
+
+    check.details = {
+        "antd_apps": len(antd_apps),
+        "apps": details,
+        "official_pattern": "https://ant.design/docs/react/getting-started + migration-v6",
+    }
+    if issues:
+        check.status = "failed"
+        check.errors = issues[:20]
+        check.warnings = warnings[:20]
+    elif warnings:
+        check.status = "warning"
+        check.warnings = warnings[:20]
+    else:
+        check.status = "passed"
+    report.add_check(check)
+
+
 # ─── Auto Fix ─────────────────────────────────────────────────────────────────
 
 def auto_fix(project_path: Path, report: ValidationReport, quiet: bool = False) -> int:
@@ -1447,7 +1744,7 @@ def validate(project_dir: str, fix: bool = False, quiet: bool = False) -> Valida
 
 # ─── CLI Entry ────────────────────────────────────────────────────────────────
 
-BOOTSTRAP_VERSION = "1.7.0"
+BOOTSTRAP_VERSION = "1.8.0"
 
 
 def main():

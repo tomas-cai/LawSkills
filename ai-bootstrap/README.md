@@ -4,11 +4,12 @@
 >
 > 为 AI 建立长期、统一、可治理的软件工程上下文。
 >
-> 当前版本：1.7.0 ｜ 执行规范：[SKILL.md](./SKILL.md)
+> 当前版本：1.8.0 ｜ 执行规范：[SKILL.md](./SKILL.md)
 
 ## 版本记录
 
-- `1.7.0`（当前）：新增 Vant 4 官方范式（ui-stack-conformance）：`uni-app-nitro` Blueprint 升级为 `vant + uni-ui`，内置 uni-app 工作区 + mobile 应用 starter（`apps/mobile`），按 Vant 4 官方 quickstart / vant-demo 范式初始化（`vant/lib/index.css` + `app.use()` 按需注册、`--van-*` 设计令牌、`van-config-provider`、`showToast`/`showDialog` 函数式 API），并拦截反模式（`babel-plugin-import`、全量 css 与 VantResolver 混用）。
+- `1.8.0`（当前）：Element Plus 2.x 与 Ant Design v6 官方范式（ui-stack-conformance）：新增 `vue-element-plus-nitro` Blueprint（Vue3 + Vite + Element Plus PC 管理端 + Nitro + Drizzle + SQLite/Turso + Vercel AI SDK，内置 pnpm workspace + `apps/web` starter：完整引入 `element-plus/dist/index.css` + `app.use(ElementPlus)`、`--el-*` 设计令牌、`el-config-provider` zhCn locale、Volar `element-plus/global` 类型）；`react-springboot` 升级为 Ant Design v6 并内置 `frontend/` starter（ConfigProvider `theme.token` + `zhCN`/dayjs locale、v6 弃用 API 清单、拦截 `@ant-design/v5-patch-for-react-19`）；生成器文本模板扩展 `.tsx/.jsx`，确保 React starter 的 `{{PROJECT_NAME}}` 等占位符正确渲染。
+- `1.7.0`：新增 Vant 4 官方范式（ui-stack-conformance）：`uni-app-nitro` Blueprint 升级为 `vant + uni-ui`，内置 uni-app 工作区 + mobile 应用 starter（`apps/mobile`），按 Vant 4 官方 quickstart / vant-demo 范式初始化（`vant/lib/index.css` + `app.use()` 按需注册、`--van-*` 设计令牌、`van-config-provider`、`showToast`/`showDialog` 函数式 API），并拦截反模式（`babel-plugin-import`、全量 css 与 VantResolver 混用）。
 - `1.6.0`：新增 UI 栈官方范式校验（ui-stack-conformance）：Nuxt UI 系 starter 按 Nuxt UI v4 / Tailwind v4 官方模板（dashboard/chat）范式初始化（`@import "tailwindcss" theme(static)` + `@import "@nuxt/ui"` + `@theme static` 品牌全色阶、`ui.colors` 语义色映射、`ui.theme.colors`、`tailwindcss` 与 `@iconify-json/*` 依赖、`app/error.vue`），并自动拦截偏离官方范式的生成品（遗留 `--mc-*` 令牌、缺失 tailwindcss 等）。
 - `1.5.0`：新增框架组件门禁（framework-component-gate）：DESIGN.md 自动登记 Nuxt UI v4 约束（`UFormGroup` → `UFormField`、@nuxt/icon CSS 模式说明），`validate.py` 扫描生成项目源码拦截废弃组件名；演示账号内置到 mock 用户库，页面展示的演示凭据可直接登录。
 - `1.4.0`：新增 `uni-app-nitro` Blueprint，补齐移动端首推组合、管理后台选型询问与运行验证完成标准。
@@ -191,9 +192,10 @@ Blueprint 是“技术栈 + 架构风格 + 设计系统入口 + 可选 starter�
 |--------------|------|----------|
 | `nuxt-ai-fullstack` | AI 原生 MVP、企业工作台、内容生成 | Nuxt 4 + Nuxt UI + Nitro + Vercel AI SDK + SQLite/Turso + Drizzle |
 | `uni-app-nitro` | 移动端 H5/小程序/App + Nitro API | uni-app + Vue3 + uni-ui + Nitro + SQLite/Turso + Vercel AI SDK |
+| `vue-element-plus-nitro` | Vue3 PC 管理端 + Nitro API | Vue 3 + Vite + Element Plus 2.x + Nitro + SQLite/Turso + Vercel AI SDK |
 | `next-fullstack` | React 生态、标准 SaaS、团队协作 | Next.js + NestJS + PostgreSQL + Prisma + Auth.js |
 | `react-fastapi` | Python AI、数据处理、模型服务 | React + FastAPI + PostgreSQL |
-| `react-springboot` | 企业级系统、团队协作、合规 | React + Vite + Ant Design + Spring Boot + PostgreSQL/MySQL |
+| `react-springboot` | 企业级系统、团队协作、合规 | React 19 + Vite + Ant Design 6 + Spring Boot + PostgreSQL/MySQL |
 | `vue-django` | 内容管理、企业后台、Python 业务系统 | Vue/Nuxt + Django + PostgreSQL |
 | `go-microservice` | 高吞吐 API、基础设施、服务拆分 | Go + Gin + PostgreSQL + gRPC |
 | `rust-axum-api` | 高性能 API、类型安全后端 | Rust + Axum + SQLite |

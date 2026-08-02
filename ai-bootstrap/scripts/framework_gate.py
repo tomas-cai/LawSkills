@@ -48,6 +48,38 @@ FRAMEWORK_CONSTRAINTS: list[dict] = [
             "函数式 API（`showToast` / `showDialog` 等）从 `vant` 直接导入即可。",
         ],
     },
+    {
+        "library": "element-plus",
+        "version": "2.x",
+        "notes": [
+            "Element Plus 2.x 官方 quickstart 二选一接入，禁止混用：完整引入 `import ElementPlus from 'element-plus'` "
+            "+ `import 'element-plus/dist/index.css'` + `app.use(ElementPlus)`（快速开始，官方推荐），"
+            "或按需用法 `unplugin-vue-components` + `unplugin-auto-import` + `ElementPlusResolver`"
+            "（来自 `unplugin-vue-components/resolvers`，此时不引入全量 css 且 vite.config 需配置插件）。",
+            "禁止同时使用全量 `element-plus/dist/index.css` 与 ElementPlusResolver（组件重复注册、样式错乱）；"
+            "也不要使用 `babel-plugin-import`。`validate.py` 的 `ui-stack-conformance` 校验会拦截该反模式。",
+            "主题定制使用 `--el-*` CSS 变量（`:root` 全局覆盖或组件类名作用域覆盖）或 SCSS "
+            "`@use 'element-plus/theme-chalk/src/common/var.scss' with (...)`；不要直接改 node_modules 里的样式。",
+            "Volar 全局组件类型：tsconfig `compilerOptions.types` 加入 `element-plus/global`；"
+            "中文 locale 用 `element-plus/es/locale/lang/zh-cn`，经 `el-config-provider` 或 `app.use` 选项注入。",
+        ],
+    },
+    {
+        "library": "antd",
+        "version": "6.x",
+        "notes": [
+            "Ant Design v6 官方快速上手：`import { ConfigProvider, ... } from 'antd'` + `import zhCN from 'antd/locale/zh_CN'` "
+            "+ `dayjs.locale('zh-cn')`；antd 默认 ES modules tree shaking，`import { Button } from 'antd'` 即按需，"
+            "无需 babel-plugin-import 或手写按需配置。",
+            "主题入口是 `ConfigProvider theme`（`token` + `algorithm`，Design Token），v6 默认启用 CSS variables；"
+            "组件色只由 theme.token 驱动，页面不散落 hex 直接覆盖 antd 组件默认色。",
+            "v6 必须移除 `@ant-design/v5-patch-for-react-19`（仅 v5 需要），`@ant-design/icons` 需 >= 6。"
+            "`validate.py` 的 `ui-stack-conformance` 校验会拦截该反模式。",
+            "v6 弃用 API：`bordered` → `variant`、`size='default'` → `'medium'`、children 列表 → `items`、"
+            "`dropdownClassName` → `classNames.popup.root`、Button `iconPosition` → `iconPlacement`、"
+            "Space `direction` → `orientation`。",
+        ],
+    },
 ]
 
 

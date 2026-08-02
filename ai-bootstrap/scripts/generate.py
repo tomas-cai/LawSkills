@@ -50,12 +50,12 @@ STARTER_TEMPLATES_DIR = TEMPLATES_DIR / "starter"
 
 # Text files inside starter templates get {{VARIABLE}} rendering on copy.
 STARTER_TEXT_EXTENSIONS = {
-    ".vue", ".ts", ".js", ".mjs", ".cjs", ".json", ".md", ".markdown",
-    ".yaml", ".yml", ".css", ".scss", ".html", ".txt", ".toml",
+    ".vue", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".md",
+    ".markdown", ".yaml", ".yml", ".css", ".scss", ".html", ".txt", ".toml",
 }
 STARTER_TEXT_FILENAMES = {".env.example", ".gitignore"}
 
-BOOTSTRAP_VERSION = "1.7.0"
+BOOTSTRAP_VERSION = "1.8.0"
 
 # Agent platform configurations
 AGENT_PLATFORMS = {
@@ -394,6 +394,16 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
             "direction": "mobile-first utility surface: light canvas, indigo action color, teal progress accent, 8px-friendly radii",
             "primary": "#4F46E5",
             "accent": "#0F9F9A",
+        },
+        "element-plus": {
+            "direction": "enterprise operations desk: slate surfaces, Element blue action color, clean table density",
+            "primary": "#2563EB",
+            "accent": "#0F9F9A",
+        },
+        "antd": {
+            "direction": "enterprise compliance console: neutral canvas, Ant brand blue primary, teal data accent",
+            "primary": "#1677FF",
+            "accent": "#08979C",
         },
     }
     _library = str(ui_library).lower()
