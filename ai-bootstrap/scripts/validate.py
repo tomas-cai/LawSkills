@@ -862,31 +862,38 @@ def check_demo_visual_baseline(project_path: Path, report: ValidationReport) -> 
         app_src = app / "app"
         has = {
             "theme_entry": (app / "app.config.ts").exists() or (app_src / "app.config.ts").exists(),
-            "fonts_plugin": (app_src / "plugins" / "fonts.ts").exists(),
+            "fonts_loaded": False,
             "css_tokens": False,
             "layouts": bool((app_src / "layouts").is_dir() and list((app_src / "layouts").glob("*.vue"))),
             "empty_state": (app_src / "components" / "EmptyState.vue").exists(),
             "seed_data": (app_src / "utils" / "seed.ts").exists(),
         }
+        # 字体证据：接受官方默认的 plugins/fonts.ts，也接受把 fontsource @import
+        # 内联进 main.css 的合法优化（见 MEMORY 决策：避免为了过检查而复制 fonts.ts）。
+        if (app_src / "plugins" / "fonts.ts").exists():
+            has["fonts_loaded"] = True
         for css in (
             app_src / "assets" / "css" / "main.css",
             app / "assets" / "css" / "main.css",
             app_src / "assets" / "css" / "main.scss",
         ):
-            if css.exists():
-                text = css.read_text(encoding="utf-8", errors="replace")
-                # 识别语义令牌：既接受 --mc-* / var(-- 老范式，也接受 design-token-spec 的
-                # @theme static { --color-*: ... } 新范式（Nuxt UI v4 / Tailwind v4 官方写法）
-                if (
-                    "--mc-" in text
-                    or "var(--" in text
-                    or "@theme" in text
-                    or re.search(r"--[a-zA-Z][a-zA-Z0-9-]*\s*:", text)
-                ):
-                    has["css_tokens"] = True
-                    break
+            if not css.exists():
+                continue
+            text = css.read_text(encoding="utf-8", errors="replace")
+            if "@import" in text and "fontsource" in text:
+                has["fonts_loaded"] = True
+            # 识别语义令牌：既接受 --mc-* / var(-- 老范式，也接受 design-token-spec 的
+            # @theme static { --color-*: ... } 新范式（Nuxt UI v4 / Tailwind v4 官方写法）
+            if (
+                "--mc-" in text
+                or "var(--" in text
+                or "@theme" in text
+                or re.search(r"--[a-zA-Z][a-zA-Z0-9-]*\s*:", text)
+            ):
+                has["css_tokens"] = True
+                break
 
-        core_keys = ("theme_entry", "fonts_plugin", "css_tokens", "layouts", "empty_state")
+        core_keys = ("theme_entry", "fonts_loaded", "css_tokens", "layouts", "empty_state")
         missing = [k for k in core_keys if not has[k]]
 
         composables_dir = app_src / "composables"

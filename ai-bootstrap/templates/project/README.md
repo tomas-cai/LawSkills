@@ -48,11 +48,7 @@
 └── 应用源码                # 按技术栈官方约定组织
 ```
 
-应用源码目录：
-
-{{PROJECT_LAYOUT_TABLE}}
-
-{{PROJECT_LAYOUT_CONVENTIONS}}
+应用源码目录遵循对应技术栈的官方约定；完整目录职责表与约定以 [`docs/DESIGN.md`](docs/DESIGN.md)「项目目录契约」为唯一来源。
 
 ## 治理
 

@@ -438,7 +438,8 @@ def ask_project_info():
     name = ask("\u9879\u76ee\u540d\u79f0", default="my-app")
     name = regex_module.sub(r'[^a-zA-Z0-9-]', '-', name).strip('-').lower() or "my-app"
 
-    description = ask("\u9879\u76ee\u63cf\u8ff0", default="AI Native Project")
+    # \u7559\u7a7a\u65f6\u7531 generate.py \u81ea\u52a8\u91c7\u7528\u6240\u9009 Blueprint \u7684 description\uff0c\u907f\u514d\u7a7a\u6d1e\u5360\u4f4d\u7b80\u4ecb\u3002
+    description = ask("\u9879\u76ee\u63cf\u8ff0\uff08\u53ef\u7559\u7a7a\uff1a\u81ea\u52a8\u91c7\u7528\u6240\u9009 Blueprint \u7684\u63cf\u8ff0\uff09", default="")
     return name, description
 
 
@@ -727,6 +728,10 @@ def run_wizard(args):
     all_bps = list_blueprints()
     selected_bp = next((bp for bp in all_bps if bp["id"] == blueprint_id), all_bps[0])
     bp_details = parse_bp_yaml(blueprint_id)
+    if not (description or "").strip():
+        description = str(selected_bp.get("description") or "").strip()
+        if description:
+            info("\u9879\u76ee\u63cf\u8ff0\u7559\u7a7a\uff0c\u81ea\u52a8\u91c7\u7528 Blueprint \u63cf\u8ff0\u3002")
     print()
 
     # ─── Step 4: Deployment ───

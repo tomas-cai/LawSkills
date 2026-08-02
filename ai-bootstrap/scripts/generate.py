@@ -376,15 +376,21 @@ def _official_demo_alignment(blueprint: dict) -> str:
     ui_library = frontend.get("ui_library", design.get("ui_library", "none"))
     theme_entry = design.get("theme_entry")
     starter = blueprint.get("starter", {}) if isinstance(blueprint, dict) else {}
-    starter_dirs = [
-        spec.get("dir") for spec in _starter_dirs_from_blueprint(starter)
-        if isinstance(spec, dict) and spec.get("dir")
-    ]
+    starter_dirs = []
+    starter_missing = []
+    for spec in _starter_dirs_from_blueprint(starter):
+        if not isinstance(spec, dict) or not spec.get("dir"):
+            continue
+        if (STARTER_TEMPLATES_DIR / spec["dir"]).is_dir():
+            starter_dirs.append(spec["dir"])
+        else:
+            starter_missing.append(spec["dir"])
     return render_official_demo_checklist(
         ui_library,
         official_paradigm=design.get("official_paradigm"),
         theme_entry=theme_entry if isinstance(theme_entry, dict) else None,
         starter_dirs=starter_dirs or None,
+        starter_missing=starter_missing or None,
     )
 
 
@@ -456,7 +462,7 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
     lines = [
         "# Design Token Spec",
         "",
-        "> 这是 Bootstrap 的产品设计基线，不是 UI 库默认主题的复制品。实现前需核对当前安装版本的官方主题 API，并保持语义令牌为唯一来源。",
+        "> 这是 Bootstrap 确立的产品设计基线。UI 库官方 starter / quickstart 范式是实现方式，语义令牌是设计决策的唯一来源；UI 库默认主题可以作为起点，但不得直接作为产品最终视觉系统。实现前需核对当前安装版本的官方主题 API。",
         "",
         "## 1. 选型上下文",
         "",
@@ -692,11 +698,21 @@ def build_variables(args, blueprint: dict) -> dict:
     architecture_style = blueprint.get("architecture", {}).get("style", "layered")
     primary_language = _primary_language(stack)
 
+    description = (args.description or "").strip() or (blueprint.get("description") or "").strip()
+    if not description:
+        description = "AI Native Project"
+        print(
+            "  \u26a0 \u672a\u63d0\u4f9b --description \u4e14 Blueprint \u672a\u58f0\u660e description\uff0c"
+            "README \u7b80\u4ecb\u5c06\u4f7f\u7528\u5360\u4f4d\u6587\u672c\uff1b"
+            "\u5efa\u8bae\u901a\u8fc7 --description \u4f20\u5165\u771f\u5b9e\u9879\u76ee\u7b80\u4ecb\u3002",
+            file=sys.stderr,
+        )
+
     return {
         "PROJECT_ID": project_id,
         "PROJECT_NAME": args.name or project_dir.name,
         "PROJECT_SLUG": _slugify(args.name or project_dir.name),
-        "PROJECT_DESCRIPTION": args.description or "AI Native Project",
+        "PROJECT_DESCRIPTION": description,
         "PROJECT_VERSION": "1.0.0",
         "CREATED_DATE": now.strftime("%Y-%m-%d"),
         "CREATED_TIMESTAMP": now.isoformat(),
@@ -835,6 +851,16 @@ def generate_content_file(
     return output_path
 
 
+def _starter_enabled(starter: dict, args) -> bool:
+    """Resolve whether the starter baseline should run (blueprint + CLI override)."""
+    enabled = bool(starter.get("enabled", False))
+    if getattr(args, "starter", None) is True:
+        enabled = True
+    if getattr(args, "starter", None) is False:
+        enabled = False
+    return enabled
+
+
 def _starter_dirs_from_blueprint(starter: dict) -> list[dict]:
     """Resolve the list of {dir, target} starter specs from a blueprint."""
     dirs = starter.get("template_dirs")
@@ -894,42 +920,46 @@ def copy_starter_template(
     generated_files: list,
     is_new: bool,
     variables: Optional[dict] = None,
-) -> None:
+) -> Optional[dict]:
     """Copy blueprint-declared starter baseline(s) into a new project.
 
     Supports both the legacy single ``template_dir`` and the new multi-app
     ``template_dirs`` list (each entry: {dir, target}), rendering text files
     with ``{{VARIABLE}}`` substitution so monorepo + app templates can share
     the project name/slug.
+
+    Returns a landing record ``{declared, applied, missing, created_files,
+    skipped_files}`` when the starter applies, or ``None`` when it was skipped
+    (not enabled / not a new project). The manifest records this truthfully so
+    a declared-but-missing template dir is never reported as applied.
     """
     starter = blueprint.get("starter", {})
     if not isinstance(starter, dict):
         starter = {}
 
-    enabled = bool(starter.get("enabled", False))
-    if getattr(args, "starter", None) is True:
-        enabled = True
-    if getattr(args, "starter", None) is False:
-        enabled = False
-
+    enabled = _starter_enabled(starter, args)
     if not enabled:
         print("  ⏭ Starter baseline skipped (not enabled for this blueprint)")
-        return
+        return None
     if not is_new:
         print("  ⏭ Starter baseline only applies to new projects")
-        return
+        return None
 
     specs = _starter_dirs_from_blueprint(starter)
     label = "multi-app monorepo" if len(specs) > 1 else specs[0]["dir"]
     print(f"  ── Basic Feature Starter ({label}) ──")
 
+    applied = []
+    missing = []
     total_created = 0
     total_skipped = 0
     for spec in specs:
         template_dir = STARTER_TEMPLATES_DIR / spec["dir"]
         if not template_dir.is_dir():
             print(f"  ⚠ Starter template directory not found: {template_dir}")
+            missing.append(spec["dir"])
             continue
+        applied.append(spec["dir"])
         created, skipped = _copy_starter_directory(
             project_path, template_dir, spec["target"], variables or {}, args, generated_files
         )
@@ -941,14 +971,47 @@ def copy_starter_template(
     else:
         print(f"  ✅ Starter baseline complete: {total_created} created, {total_skipped} skipped.")
 
+    return {
+        "declared": [spec["dir"] for spec in specs],
+        "applied": applied,
+        "missing": missing,
+        "created_files": total_created,
+        "skipped_files": total_skipped,
+    }
+
 
 def generate_manifest(
-    args, blueprint: dict, generated_files: list, variables: dict, resolved_from: str
+    args, blueprint: dict, generated_files: list, variables: dict, resolved_from: str,
+    starter_result: Optional[dict] = None,
 ) -> dict:
-    """Generate the bootstrap manifest."""
+    """Generate the bootstrap manifest.
+
+    ``starter_result`` is the landing record returned by ``copy_starter_template``
+    (or None when the starter was skipped). It lets the manifest truthfully
+    report which declared starter dirs were actually applied, so a stale
+    ``template_dir`` pointing at a missing template is never recorded as
+    successfully copied.
+    """
     starter = blueprint.get("starter", {})
     if not isinstance(starter, dict):
         starter = {}
+
+    enabled = _starter_enabled(starter, args)
+    if starter_result is None:
+        status = "skipped"
+        applied_dirs = []
+        missing_dirs = []
+    else:
+        applied_dirs = list(starter_result.get("applied", []))
+        missing_dirs = list(starter_result.get("missing", []))
+        if missing_dirs and applied_dirs:
+            status = "partial"
+        elif missing_dirs:
+            status = "missing"
+        elif applied_dirs:
+            status = "applied"
+        else:
+            status = "none"
 
     return {
         "manifest": {
@@ -965,11 +1028,14 @@ def generate_manifest(
                 "resolved_from": resolved_from,
             },
             "starter": {
-                "enabled": bool(starter.get("enabled", False)),
+                "enabled": enabled,
                 "mode": starter.get("mode", "none"),
                 "template_dir": starter.get("template_dir", "none"),
                 "template_dirs": _starter_dirs_from_blueprint(starter),
                 "features": starter.get("features", []),
+                "status": status,
+                "applied_dirs": applied_dirs,
+                "missing_dirs": missing_dirs,
             },
             "apps": blueprint.get("apps", []),
             "governance": {
@@ -1150,12 +1216,15 @@ def generate(args) -> list:
             generated_files.append(str(gen))
 
     # ─── Generate Basic Feature Starter (new projects only) ───
-    copy_starter_template(project_path, blueprint, args, generated_files, is_new, variables)
+    starter_result = copy_starter_template(
+        project_path, blueprint, args, generated_files, is_new, variables
+    )
 
     # ─── Generate Bootstrap Manifest ───
     manifest_path = out / MANIFEST_PATH
     manifest = generate_manifest(
-        args, blueprint, generated_files + [str(manifest_path)], variables, resolved_from
+        args, blueprint, generated_files + [str(manifest_path)], variables, resolved_from,
+        starter_result=starter_result,
     )
     manifest_will_write = force or not manifest_path.exists()
     if not args.dry_run and manifest_will_write:

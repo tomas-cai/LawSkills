@@ -310,7 +310,7 @@ starter:
 
 - `enabled`: 是否默认启用。
 - `mode`: `mock-first` 或 `api`。
-- `template_dir`: 单应用场景：`templates/starter/` 下的子目录名，文本文件按原样复制。
+- `template_dir`: 单应用场景：`templates/starter/` 下的子目录名（文本文件复制时同样渲染 `{{VARIABLE}}`，与 `template_dirs` 一致）。
 - `template_dirs`: 多应用单仓场景：`{dir, target}` 列表，`dir` 是 `templates/starter/` 下的子目录，`target` 是复制到项目里的相对路径（如 `apps/app-web-hr`）；`.vue/.ts/.tsx/.js/.jsx/.json/.md/.yaml/.css` 等文本文件复制时渲染 `{{VARIABLE}}`（如 `{{PROJECT_NAME}}`、`{{PROJECT_SLUG}}`）。
 - `monorepo_dir`: 多应用根目录模板（pnpm workspace + Turborepo）。
 - `features`: 基础功能清单，用于生成说明与 manifest。

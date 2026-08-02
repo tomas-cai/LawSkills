@@ -191,13 +191,15 @@ def render_official_demo_checklist(
     official_paradigm: str | None = None,
     theme_entry: dict | None = None,
     starter_dirs: list[str] | None = None,
+    starter_missing: list[str] | None = None,
 ) -> str:
     """渲染「与官方 DEMO 对齐」验收清单（README.md 与 design-token-spec.md 共用）。
 
     参数来自生成中的 Blueprint：
     - official_paradigm：设计系统声明的官方安装范式摘要（缺失时标记为未对齐项）
     - theme_entry：主题令牌入口声明（framework / global_tokens / components / icon）
-    - starter_dirs：本次生成的 starter 模板目录名列表
+    - starter_dirs：实际存在于 templates/starter 下的 starter 模板目录名列表
+    - starter_missing：声明了但模板目录不存在的 starter 目录名列表（如实标注，避免虚假「已生成」）
     任何新 UI 栈必须先登记 official_demo_url 才能输出「已对齐」状态。
     """
     refs = official_references_for_ui_library(ui_library)
@@ -243,8 +245,15 @@ def render_official_demo_checklist(
         + (theme_note if theme_ok else "缺失 `theme_entry`，需按官方 theming 文档补齐")
         + " |"
     )
-    starter_note = "、".join(starter_dirs) if starter_ok else "该 Blueprint 未启用 starter（仅治理）"
-    lines.append("| starter 目录已生成 | " + ("✅" if starter_ok else "—") + f" | {starter_note} |")
+    if starter_missing:
+        starter_ok = False
+        parts = [f"模板缺失: {dir}" for dir in starter_missing]
+        if starter_dirs:
+            parts.append("已落地: " + "、".join(starter_dirs))
+        starter_note = "；".join(parts)
+    else:
+        starter_note = "、".join(starter_dirs) if starter_ok else "该 Blueprint 未启用 starter（仅治理）"
+    lines.append("| starter 目录已生成 | " + ("✅" if starter_ok else "⚠️") + f" | {starter_note} |")
     lines.extend([
         "| `ui-stack-conformance` 门禁 | ⚠️ | 生成后可运行 `validate.py --dir <project>` 确认 passed |",
         "| 未对齐项 | " + ("无（按注册表逐项核对）" if paradigm_ok else "官方范式未登记") + " | 发现偏离时先修 starter，再继续业务开发 |",

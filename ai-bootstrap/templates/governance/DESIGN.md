@@ -32,6 +32,8 @@ generated: {{CREATED_DATE}}
 
 ## 项目目录契约
 
+> 本文档为目录契约的**唯一来源**；README 与 PROJECT_PROFILE 只引用本表，不另立职责表。
+
 应用源码目录必须遵循对应技术栈的官方约定：
 
 {{PROJECT_LAYOUT_TABLE}}

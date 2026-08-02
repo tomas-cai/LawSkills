@@ -92,20 +92,29 @@ skills:
 
 ## 可选：基础功能基线 starter
 
-Blueprint 可声明 `starter`，在全新项目生成时复制 `templates/starter/<template_dir>/` 下的 mock-first 基础功能（如 JWT + author 鉴权、项目新建/编辑）：
+Blueprint 可声明 `starter`，在全新项目生成时复制 `templates/starter/` 下的 mock-first 基础功能（如 JWT + author 鉴权、项目新建/编辑）。多应用单仓使用 `template_dirs`（复制根 + 各 `apps/<id>/` 目录）；`generate.py` 会把实际落地状态写入 manifest：
 
 ```yaml
 starter:
   enabled: true
   mode: mock-first
-  template_dir: nuxt-basic-auth
+  template_dirs:
+    - dir: nuxt-monorepo-root
+      target: ""
+    - dir: nuxt-app-hr
+      target: apps/app-web-hr
+    - dir: nuxt-app-platform
+      target: apps/app-web-platform
+    - dir: nitro-server-standalone
+      target: apps/app-web-server
   features:
     - jwt-author-auth
     - project-create-edit
 ```
 
 - `enabled` 控制默认是否复制；`--no-starter` / `--starter` 可在 CLI 覆盖。
-- `template_dir` 下的文件按原样复制，不经过 `{{VARIABLE}}` 渲染，因此代码中的 Vue `{{ }}` 不会被破坏。
+- `template_dirs` 每个 `{dir, target}` 指向 `templates/starter/<dir>/`；`.vue/.ts/.tsx/.js/.jsx/.json/.md/.yaml/.css` 等文本文件复制时渲染 `{{VARIABLE}}`（如 `{{PROJECT_NAME}}`、`{{PROJECT_SLUG}}`）。
+- manifest 的 `starter.status` 如实记录落地状态（`applied` / `partial` / `missing` / `skipped`），并列出 `applied_dirs` / `missing_dirs`；不要把未复制成功的模板目录记为「已生成」。
 - 新 Blueprint 若声明 starter，必须同时补充生成与验证回归测试。
 
 ## 验证

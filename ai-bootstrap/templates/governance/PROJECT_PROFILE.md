@@ -90,9 +90,7 @@ dna:
 
 ### 项目目录契约
 
-{{PROJECT_LAYOUT_TABLE}}
-
-{{PROJECT_LAYOUT_CONVENTIONS}}
+目录职责表与约定以 [`docs/DESIGN.md`](DESIGN.md)「项目目录契约」为唯一来源。
 
 {{PROJECT_SKILLS_SECTION}}
 

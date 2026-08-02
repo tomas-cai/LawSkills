@@ -155,12 +155,13 @@ class BootstrapPipelineTests(unittest.TestCase):
             self.assertIn("shadcn/ui v3", token_text)
             readme_text = (Path(project) / "README.md").read_text(encoding="utf-8")
             self.assertIn("应用源码目录", readme_text)
-            self.assertIn("apps/web", readme_text)
+            self.assertIn("docs/DESIGN.md", readme_text)  # 目录契约单一来源：README 只引用 DESIGN
             self.assertIn("pnpm install", readme_text)
             self.assertIn("pnpm dev", readme_text)
             self.assertIn("pnpm test", readme_text)
             design_text = (Path(project) / "docs" / "DESIGN.md").read_text(encoding="utf-8")
             self.assertIn("项目目录契约", design_text)
+            self.assertIn("apps/web", design_text)
             self.assertIn("apps/api", design_text)
             self.assertTrue((Path(project) / ".ai-bootstrap" / "bootstrap-manifest.yaml").exists())
             for legacy_path in (
@@ -1249,6 +1250,141 @@ body {
             [{"starter": "react-shadcn-web", "target": "frontend"}],
         )
         self.assertEqual(manifest_targets(None), [])
+
+
+    def test_readme_description_derives_from_blueprint(self):
+        """未传 --description 时，README 简介默认采用 Blueprint 的 description，避免空洞占位。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-desc-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--name", "DescCheck", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            readme = (Path(project) / "README.md").read_text(encoding="utf-8")
+            self.assertIn("Nuxt 4 + Nuxt UI", readme)
+            self.assertNotIn("AI Native Project", readme)
+
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-desc-2-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--name", "DescCheck", "--description", "My custom intro", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            readme = (Path(project) / "README.md").read_text(encoding="utf-8")
+            self.assertIn("My custom intro", readme)
+
+    def test_layout_contract_single_source_in_design(self):
+        """目录契约单一来源：职责表只在 DESIGN.md，README/PROFILE 引用而不复制。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-layout-src-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--name", "SingleSource", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            readme = (Path(project) / "README.md").read_text(encoding="utf-8")
+            profile = (Path(project) / "docs" / "PROJECT_PROFILE.md").read_text(encoding="utf-8")
+            design = (Path(project) / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+            self.assertNotIn("| 目录 | 职责 |", readme)
+            self.assertNotIn("| 目录 | 职责 |", profile)
+            self.assertIn("| 目录 | 职责 |", design)
+            self.assertIn("docs/DESIGN.md", readme)
+            self.assertIn("唯一来源", profile)
+
+    def test_manifest_records_starter_landing_status(self):
+        """manifest 如实记录 starter 落地状态：applied / skipped / partial。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-manifest-status-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--name", "MobileCoach", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            manifest = load_yaml_text(
+                (Path(project) / ".ai-bootstrap" / "bootstrap-manifest.yaml").read_text(encoding="utf-8")
+            )
+            starter = manifest["manifest"]["starter"]
+            self.assertEqual(starter["status"], "applied")
+            self.assertEqual(len(starter["applied_dirs"]), 4)
+            self.assertEqual(starter["missing_dirs"], [])
+
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-manifest-no-starter-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--no-starter", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            manifest = load_yaml_text(
+                (Path(project) / ".ai-bootstrap" / "bootstrap-manifest.yaml").read_text(encoding="utf-8")
+            )
+            starter = manifest["manifest"]["starter"]
+            self.assertEqual(starter["status"], "skipped")
+            self.assertEqual(starter["applied_dirs"], [])
+
+        # 声明了不存在的模板目录时：status=partial 且如实列出 missing/applied
+        from generate import copy_starter_template, generate_manifest
+
+        class _Args:
+            starter = None
+            dry_run = True
+            force = False
+            name = "PartialProj"
+            dir = "/tmp/partial-proj"
+
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-manifest-partial-") as project:
+            args = _Args()
+            blueprint = {
+                "id": "custom", "version": "1.0.0", "name": "Custom", "tags": [],
+                "description": "partial starter test", "stack": {}, "architecture": {},
+                "starter": {
+                    "enabled": True,
+                    "mode": "mock-first",
+                    "template_dirs": [
+                        {"dir": "nuxt-app-hr", "target": "apps/app-web-hr"},
+                        {"dir": "missing-template-dir", "target": "apps/missing"},
+                    ],
+                },
+            }
+            generated: list = []
+            result = copy_starter_template(Path(project), blueprint, args, generated, True, {})
+            self.assertEqual(result["applied"], ["nuxt-app-hr"])
+            self.assertEqual(result["missing"], ["missing-template-dir"])
+            manifest = generate_manifest(
+                args, blueprint, [], {"AGENT_COUNT": 1}, "test", starter_result=result
+            )
+            starter = manifest["manifest"]["starter"]
+            self.assertEqual(starter["status"], "partial")
+            self.assertEqual(starter["applied_dirs"], ["nuxt-app-hr"])
+            self.assertEqual(starter["missing_dirs"], ["missing-template-dir"])
+
+    def test_fonts_evidence_accepts_main_css_fontsource_import(self):
+        """demo-visual-baseline：删除 fonts.ts 后，main.css 内联 @import fontsource 仍视为字体证据。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-fonts-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
+                "--name", "MatchCV", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for app in ("app-web-hr", "app-web-platform"):
+                fonts_plugin = Path(project) / f"apps/{app}/app/plugins/fonts.ts"
+                fonts_plugin.unlink()  # 模拟 MEMORY 决策 5 的合法优化：只保留 main.css import
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            report = json.loads(validation.stdout)
+            visual = next(c for c in report["checks"] if c["name"] == "demo-visual-baseline")
+            self.assertEqual(visual["status"], "passed")
+
+            # 反向：两种字体证据都没有时才报 warning
+            for app in ("app-web-hr", "app-web-platform"):
+                main_css = Path(project) / f"apps/{app}/app/assets/css/main.css"
+                text = main_css.read_text(encoding="utf-8").replace(
+                    "@import '@fontsource-variable/inter';", ""
+                )
+                main_css.write_text(text, encoding="utf-8")
+            validation2 = self.run_script("validate.py", "--dir", project, "--json")
+            report2 = json.loads(validation2.stdout)
+            visual2 = next(c for c in report2["checks"] if c["name"] == "demo-visual-baseline")
+            self.assertEqual(visual2["status"], "warning")
+            self.assertTrue(any("fonts_loaded" in w for w in visual2["warnings"]))
 
 
 if __name__ == "__main__":
