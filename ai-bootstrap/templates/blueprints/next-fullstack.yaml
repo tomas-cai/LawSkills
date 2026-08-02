@@ -49,6 +49,7 @@ design_system:
   icon_library: lucide-react
   color_mode: light-dark
   token_preset: ink-indigo
+  official_paradigm: "shadcn/ui v3 官方安装范式（v3.shadcn.com/docs/installation/vite + Tailwind v4）：全局 CSS 以 @import \"tailwindcss\" 起步（Vite 插件 @tailwindcss/vite，tsconfig/vite 配 @/* 路径别名）；pnpm dlx shadcn@latest init 生成 components.json + globals.css 主题变量（--primary / --radius 等 CSS 变量 + 语义类名）与 src/lib/utils.ts（cn()）；组件用 pnpm dlx shadcn@latest add <component> 源码拷贝进 src/components/ui/（不走 babel-plugin-import 或运行时按需插件）；主题色只改 CSS 变量（--primary / --radius），页面不散落 hex 直接覆盖组件默认色"
   theme_entry:
     framework: apps/web/src/app/layout.tsx
     global_tokens: apps/web/src/app/globals.css

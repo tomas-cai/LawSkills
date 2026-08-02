@@ -4,11 +4,12 @@
 >
 > 为 AI 建立长期、统一、可治理的软件工程上下文。
 >
-> 当前版本：1.8.0 ｜ 执行规范：[SKILL.md](./SKILL.md)
+> 当前版本：1.9.0 ｜ 执行规范：[SKILL.md](./SKILL.md)
 
 ## 版本记录
 
-- `1.8.0`（当前）：Element Plus 2.x 与 Ant Design v6 官方范式（ui-stack-conformance）：新增 `vue-element-plus-nitro` Blueprint（Vue3 + Vite + Element Plus PC 管理端 + Nitro + Drizzle + SQLite/Turso + Vercel AI SDK，内置 pnpm workspace + `apps/web` starter：完整引入 `element-plus/dist/index.css` + `app.use(ElementPlus)`、`--el-*` 设计令牌、`el-config-provider` zhCn locale、Volar `element-plus/global` 类型）；`react-springboot` 升级为 Ant Design v6 并内置 `frontend/` starter（ConfigProvider `theme.token` + `zhCN`/dayjs locale、v6 弃用 API 清单、拦截 `@ant-design/v5-patch-for-react-19`）；生成器文本模板扩展 `.tsx/.jsx`，确保 React starter 的 `{{PROJECT_NAME}}` 等占位符正确渲染。
+- `1.9.0`（当前）：官方范式门禁扩展至 shadcn/ui 与 Naive UI：`next-fullstack` / `react-fastapi` 声明 shadcn/ui v3 官方安装范式（`components.json` + `@import "tailwindcss"` + `--primary`/`--radius` CSS 变量 + 源码拷贝进 `src/components/ui/`、`shadcn add`、禁止 `babel-plugin-import`）；`vue-django` 声明 Naive UI 2.x 官方范式（不导入任何 CSS、`n-config-provider :theme-overrides` + `GlobalThemeOverrides` 集中 `theme.ts`、`zhCN`/`dateZhCN` locale）；`framework-gate` 注册表与 `ui-stack-conformance` 同步新增 shadcn / naive-ui 门禁（反模式拦截：`babel-plugin-import`、`naive-ui/dist` 全量 CSS 导入），并明确「官方范式优先」原则——新 UI 栈接入必须先查官方 starter/quickstart/template 再生成瘦 DEMO。
+- `1.8.0`：Element Plus 2.x 与 Ant Design v6 官方范式（ui-stack-conformance）：新增 `vue-element-plus-nitro` Blueprint（Vue3 + Vite + Element Plus PC 管理端 + Nitro + Drizzle + SQLite/Turso + Vercel AI SDK，内置 pnpm workspace + `apps/web` starter：完整引入 `element-plus/dist/index.css` + `app.use(ElementPlus)`、`--el-*` 设计令牌、`el-config-provider` zhCn locale、Volar `element-plus/global` 类型）；`react-springboot` 升级为 Ant Design v6 并内置 `frontend/` starter（ConfigProvider `theme.token` + `zhCN`/dayjs locale、v6 弃用 API 清单、拦截 `@ant-design/v5-patch-for-react-19`）；生成器文本模板扩展 `.tsx/.jsx`，确保 React starter 的 `{{PROJECT_NAME}}` 等占位符正确渲染。
 - `1.7.0`：新增 Vant 4 官方范式（ui-stack-conformance）：`uni-app-nitro` Blueprint 升级为 `vant + uni-ui`，内置 uni-app 工作区 + mobile 应用 starter（`apps/mobile`），按 Vant 4 官方 quickstart / vant-demo 范式初始化（`vant/lib/index.css` + `app.use()` 按需注册、`--van-*` 设计令牌、`van-config-provider`、`showToast`/`showDialog` 函数式 API），并拦截反模式（`babel-plugin-import`、全量 css 与 VantResolver 混用）。
 - `1.6.0`：新增 UI 栈官方范式校验（ui-stack-conformance）：Nuxt UI 系 starter 按 Nuxt UI v4 / Tailwind v4 官方模板（dashboard/chat）范式初始化（`@import "tailwindcss" theme(static)` + `@import "@nuxt/ui"` + `@theme static` 品牌全色阶、`ui.colors` 语义色映射、`ui.theme.colors`、`tailwindcss` 与 `@iconify-json/*` 依赖、`app/error.vue`），并自动拦截偏离官方范式的生成品（遗留 `--mc-*` 令牌、缺失 tailwindcss 等）。
 - `1.5.0`：新增框架组件门禁（framework-component-gate）：DESIGN.md 自动登记 Nuxt UI v4 约束（`UFormGroup` → `UFormField`、@nuxt/icon CSS 模式说明），`validate.py` 扫描生成项目源码拦截废弃组件名；演示账号内置到 mock 用户库，页面展示的演示凭据可直接登录。

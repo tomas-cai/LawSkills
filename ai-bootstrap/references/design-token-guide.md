@@ -15,9 +15,9 @@
 | 组合 | 首选实现入口 | 约束 |
 |---|---|---|
 | Nuxt + Nuxt UI | `app.config.ts` + 全局 CSS variables + Nuxt UI theme slots | 先映射 semantic tokens，再使用组件 slots/variants；核对当前 Nuxt UI 版本 API |
-| Next/React + shadcn | 全局 CSS variables + Tailwind semantic mappings + `components/ui` variants | 页面不直接使用任意色阶；组件变体共享同一变量 |
+| Next/React + shadcn | 全局 CSS variables + Tailwind semantic mappings + `components/ui` variants | 官方范式（v3）：`shadcn init` 生成 `components.json` + `globals.css` 主题变量 + 组件源码拷贝进 `src/components/ui/`；全局 CSS 以 `@import "tailwindcss"` 起步；页面只使用 `bg-primary` 等语义类名，不散落 hex |
 | React + MUI | `createTheme` + CssVarsProvider（如版本支持） | 用 palette/typography/shape/spacing 统一控件，避免局部 `sx` 覆盖基线 |
-| Vue + Naive UI | `NConfigProvider` theme overrides + 全局 CSS variables | 组件主题覆盖必须可追溯到语义 token |
+| Vue + Naive UI | `NConfigProvider` theme overrides + 全局 CSS variables | 官方范式（2.x）：不导入任何 CSS；`theme.ts` 集中导出 `GlobalThemeOverrides`，`n-config-provider :theme-overrides` 注入 + `zhCN`/`dateZhCN` locale |
 | uni-app + uni-ui | `uni.scss` + CSS variables + uni-ui 组件主题 | 多端共用一个令牌来源，但各端按平台能力单独验收 |
 | Vant 4 | CSS variables + 按需引入的组件主题 | 移动端优先校验触控目标、安全区和底部导航 |
 | Vue + Element Plus | 全局 CSS variables（`--el-*`）+ `el-config-provider` | 组件主题覆盖必须在类名作用域的 `--el-*` 变量或 SCSS `@use ... with (...)` 中，禁止散落 hex |

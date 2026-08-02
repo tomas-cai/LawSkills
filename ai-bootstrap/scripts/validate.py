@@ -384,12 +384,13 @@ def check_design_token_spec(project_path: Path, report: ValidationReport) -> Non
                 pass
 
     required_markers = [
-        "## 2. 技术栈主题入口",
-        "## 3. 语义颜色",
-        "## 4. Typography scale",
-        "## 5. Layout、shape 与行为",
-        "## 6. 组件基线",
-        "## 8. 首屏验收清单",
+        "## 2. UI 库官方范式",
+        "## 3. 技术栈主题入口",
+        "## 4. 语义颜色",
+        "## 5. Typography scale",
+        "## 6. Layout、shape 与行为",
+        "## 7. 组件基线",
+        "## 9. 首屏验收清单",
     ]
     missing_markers = [marker for marker in required_markers if marker not in text]
     issues = []
@@ -1018,6 +1019,8 @@ def check_ui_stack_conformance(project_path: Path, report: ValidationReport) -> 
     _check_vant_conformance(project_path, report)
     _check_element_plus_conformance(project_path, report)
     _check_antd_conformance(project_path, report)
+    _check_shadcn_conformance(project_path, report)
+    _check_naive_ui_conformance(project_path, report)
 
 
 def _check_nuxt_ui_conformance(project_path: Path, report: ValidationReport) -> None:
@@ -1585,6 +1588,236 @@ def _check_antd_conformance(project_path: Path, report: ValidationReport) -> Non
     report.add_check(check)
 
 
+def _candidate_web_dirs(project_path: Path) -> list:
+    """Return candidate web app dirs: apps/* and root-level frontend/web/client."""
+    dirs = []
+    apps_dir = project_path / "apps"
+    if apps_dir.is_dir():
+        dirs += [p for p in sorted(apps_dir.iterdir()) if p.is_dir()]
+    for name in ("frontend", "web", "client"):
+        d = project_path / name
+        if d.is_dir():
+            dirs.append(d)
+    return dirs
+
+
+def _check_shadcn_conformance(project_path: Path, report: ValidationReport) -> None:
+    """Verify shadcn/ui apps follow the official v3 installation paradigm (Tailwind v4).
+
+    Official paradigm (v3.shadcn.com/docs/installation/vite + shadcn init/add):
+    - 组件是源码拷贝进项目（src/components/ui/ + components.json），不是 npm 依赖
+    - 全局 CSS 以 @import "tailwindcss" 起步（Vite 插件 @tailwindcss/vite；tsconfig/vite 配 @/* 别名）
+    - pnpm dlx shadcn@latest init 生成 components.json + globals.css 主题 CSS 变量（--primary / --radius）+ lib/utils.ts cn()
+    - 组件用 pnpm dlx shadcn@latest add <component> 拷进 src/components/ui/；不走 babel-plugin-import
+    - 主题色只改 CSS 变量；页面用 bg-primary / text-muted 等语义类名，不散落 hex
+    注意：shadcn Blueprint 尚无内置 starter，本检查对缺失项只报 warning，仅拦截明确反模式（如 babel-plugin-import）。
+    """
+    check = ValidationCheck(
+        "ui-stack-conformance",
+        "Verify shadcn/ui apps follow the official v3 paradigm (components.json + Tailwind v4 CSS variables + source-copied components; no babel-plugin-import)",
+    )
+
+    shadcn_apps = []
+    for d in _candidate_web_dirs(project_path):
+        has_components_json = (d / "components.json").exists()
+        has_ui_dir = (d / "src" / "components" / "ui").is_dir()
+        if has_components_json or has_ui_dir:
+            shadcn_apps.append(d)
+    if not shadcn_apps:
+        check.status = "skipped"
+        check.details = {"shadcn_apps": 0, "reason": "no shadcn components.json / src/components/ui found"}
+        report.add_check(check)
+        return
+
+    issues = []
+    warnings = []
+    details = []
+    for app in shadcn_apps:
+        deps = _package_deps(app)
+        app_src = app / "src"
+        app_issues = []
+        app_warnings = []
+
+        # 1) 官方签名：components.json + components/ui 源码拷贝
+        if not (app / "components.json").exists():
+            app_warnings.append(f"{app.name}: 缺少 components.json（shadcn init 官方产物；组件以源码形式管理）")
+
+        # 2) 全局 CSS：@import "tailwindcss"（v4）或 @tailwind base（v3 legacy）
+        global_css = None
+        for css in (app / "app" / "globals.css", app / "src" / "index.css", app / "src" / "styles" / "globals.css", app / "styles" / "globals.css"):
+            if css.exists():
+                global_css = css
+                break
+        if global_css is None:
+            app_warnings.append(f"{app.name}: 未找到全局 CSS（shadcn 官方范式：app/globals.css 或 src/index.css 以 @import \"tailwindcss\" 起步）")
+        else:
+            css_text = global_css.read_text(encoding="utf-8", errors="replace")
+            if '@import "tailwindcss"' not in css_text and "@tailwind base" not in css_text:
+                app_warnings.append(f"{app.name}: 全局 CSS 未以 @import \"tailwindcss\"（Tailwind v4 官方范式）或 @tailwind base（v3 legacy）起步")
+
+        # 3) 主题 CSS 变量（--primary / --radius）
+        css_sources = ""
+        for css in (app / "app" / "globals.css", app / "src" / "index.css", app / "src" / "styles" / "globals.css"):
+            if css.exists():
+                css_sources += css.read_text(encoding="utf-8", errors="replace")
+        if "--primary" not in css_sources or "--radius" not in css_sources:
+            app_warnings.append(f"{app.name}: 全局 CSS 缺少 shadcn init 生成的主题变量（--primary / --radius；主题色应只改 CSS 变量，页面不散落 hex）")
+
+        # 4) 语义类名使用（bg-primary / text-muted 等）
+        sources_text = ""
+        for f in sorted(app_src.rglob("*")):
+            if f.suffix not in {".tsx", ".ts", ".jsx", ".js", ".css"}:
+                continue
+            if any(part in {"node_modules", "dist", "components/ui"} for part in f.parts):
+                continue
+            try:
+                sources_text += f.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                continue
+        if not re.search(r"\b(?:bg|text|border|ring)-primary\b", sources_text) and "bg-secondary" not in sources_text:
+            app_warnings.append(f"{app.name}: 源码未使用 shadcn 语义类名（bg-primary / text-muted 等；主题由 CSS 变量驱动）")
+
+        # 5) 反模式依赖（拦截）
+        if "babel-plugin-import" in deps:
+            app_issues.append(f"{app.name}: 仍依赖 babel-plugin-import（shadcn 官方范式是源码拷贝 + Tailwind，不走按需插件）")
+
+        details.append({
+            "app": str(app.relative_to(project_path)),
+            "has_components_json": (app / "components.json").exists(),
+            "has_ui_dir": (app_src / "components" / "ui").is_dir(),
+            "global_css": str(global_css.relative_to(app)) if global_css else None,
+            "has_tailwind_import": bool(global_css) and ('@import "tailwindcss"' in global_css.read_text(encoding="utf-8", errors="replace") if global_css else False),
+            "has_theme_vars": "--primary" in css_sources and "--radius" in css_sources,
+            "uses_semantic_classes": bool(re.search(r"\b(?:bg|text|border|ring)-primary\b", sources_text)) or "bg-secondary" in sources_text,
+        })
+        issues.extend(app_issues)
+        warnings.extend(app_warnings)
+
+    check.details = {
+        "shadcn_apps": len(shadcn_apps),
+        "apps": details,
+        "official_pattern": "https://v3.shadcn.com/docs/installation/vite + shadcn init/add",
+    }
+    if issues:
+        check.status = "failed"
+        check.errors = issues[:20]
+        check.warnings = warnings[:20]
+    elif warnings:
+        check.status = "warning"
+        check.warnings = warnings[:20]
+    else:
+        check.status = "passed"
+    report.add_check(check)
+
+
+def _check_naive_ui_conformance(project_path: Path, report: ValidationReport) -> None:
+    """Verify Naive UI 2.x apps follow the official quickstart / theming paradigm.
+
+    Official paradigm (naiveui.com 快速上手 + 主题定制):
+    - 不需要导入任何 CSS：组件直接 import { NButton } from 'naive-ui'（tree-shaking 友好）
+    - 主题入口 n-config-provider :theme-overrides（JS 对象 GlobalThemeOverrides；暗色 darkTheme）
+    - 中文环境注入 locale={zhCN} date-locale={dateZhCN}（来自 naive-ui）
+    - 按需可配 unplugin-vue-components + NaiveUiResolver + unplugin-auto-import
+    - 主题令牌集中在 theme.ts 导出 themeOverrides；页面不散落 hex
+    注意：vue-django Blueprint 尚无内置 starter，本检查对缺失项只报 warning，仅拦截明确反模式（如导入全量 CSS）。
+    """
+    check = ValidationCheck(
+        "ui-stack-conformance",
+        "Verify Naive UI 2.x apps follow the official paradigm (no CSS import; n-config-provider :theme-overrides + zhCN locale)",
+    )
+
+    naive_apps = list(_apps_of_kind(project_path, "naive-ui"))
+    frontend_dir = project_path / "frontend"
+    if frontend_dir.is_dir() and "naive-ui" in _package_deps(frontend_dir) and frontend_dir not in naive_apps:
+        naive_apps.append(frontend_dir)
+    if not naive_apps:
+        check.status = "skipped"
+        check.details = {"naive_apps": 0, "reason": "no naive-ui apps declared"}
+        report.add_check(check)
+        return
+
+    issues = []
+    warnings = []
+    details = []
+    for app in naive_apps:
+        app_src = app / "src"
+        app_issues = []
+        app_warnings = []
+
+        # 1) 反模式：全量 CSS 导入（拦截）
+        css_import_hits = []
+        for f in sorted(app_src.rglob("*")):
+            if f.suffix not in {".ts", ".js", ".vue", ".mjs", ".cjs"}:
+                continue
+            if any(part in {"node_modules", "dist"} for part in f.parts):
+                continue
+            try:
+                lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+            except Exception:
+                continue
+            for idx, line in enumerate(lines, start=1):
+                if "naive-ui/dist" in line and "css" in line.lower():
+                    css_import_hits.append(f"{f.relative_to(app)}:{idx}: {line.strip()}")
+        for hit in css_import_hits[:5]:
+            app_issues.append(f"{app.name}: 导入了 Naive UI 全量样式（{hit}；官方范式无需导入任何 CSS，组件独立导出 tree-shaking 友好）")
+
+        # 2) 主题入口：n-config-provider + :theme-overrides + 集中 theme.ts
+        sources_text = ""
+        for f in sorted(app_src.rglob("*")):
+            if f.suffix not in {".vue", ".ts", ".tsx", ".js", ".jsx"}:
+                continue
+            if any(part in {"node_modules", "dist"} for part in f.parts):
+                continue
+            try:
+                sources_text += f.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                continue
+        if "n-config-provider" not in sources_text:
+            app_warnings.append(f"{app.name}: 未使用 <n-config-provider>（Naive UI 官方主题入口）")
+        if "theme-overrides" not in sources_text:
+            app_warnings.append(f"{app.name}: 未发现 :theme-overrides（主题定制应通过 GlobalThemeOverrides JS 对象注入）")
+        theme_ts = app_src / "theme.ts"
+        theme_text = theme_ts.read_text(encoding="utf-8", errors="replace") if theme_ts.exists() else ""
+        if "GlobalThemeOverrides" not in theme_text + sources_text:
+            app_warnings.append(f"{app.name}: 未引用 GlobalThemeOverrides 类型（建议集中在一个 theme.ts 导出 themeOverrides 对象）")
+
+        # 3) 中文 locale
+        if "zhCN" not in sources_text or "dateZhCN" not in sources_text:
+            app_warnings.append(f"{app.name}: 未注入中文 locale（locale={{\u0027zhCN\u0027}} date-locale={{\u0027dateZhCN\u0027}}，均来自 naive-ui）")
+
+        # 4) 组件基线
+        if "<n-" not in sources_text:
+            app_warnings.append(f"{app.name}: 源码未使用 <n-* 组件（Naive UI 组件基线缺失）")
+
+        details.append({
+            "app": str(app.relative_to(project_path)),
+            "has_config_provider": "n-config-provider" in sources_text,
+            "has_theme_overrides": "theme-overrides" in sources_text,
+            "has_global_theme_overrides_type": "GlobalThemeOverrides" in theme_text + sources_text,
+            "has_zh_locale": "zhCN" in sources_text and "dateZhCN" in sources_text,
+            "uses_n_components": "<n-" in sources_text,
+            "css_import_hits": len(css_import_hits),
+        })
+        issues.extend(app_issues)
+        warnings.extend(app_warnings)
+
+    check.details = {
+        "naive_apps": len(naive_apps),
+        "apps": details,
+        "official_pattern": "https://www.naiveui.com/zh-CN/os-theme + 快速上手",
+    }
+    if issues:
+        check.status = "failed"
+        check.errors = issues[:20]
+        check.warnings = warnings[:20]
+    elif warnings:
+        check.status = "warning"
+        check.warnings = warnings[:20]
+    else:
+        check.status = "passed"
+    report.add_check(check)
+
+
 # ─── Auto Fix ─────────────────────────────────────────────────────────────────
 
 def auto_fix(project_path: Path, report: ValidationReport, quiet: bool = False) -> int:
@@ -1744,7 +1977,7 @@ def validate(project_dir: str, fix: bool = False, quiet: bool = False) -> Valida
 
 # ─── CLI Entry ────────────────────────────────────────────────────────────────
 
-BOOTSTRAP_VERSION = "1.8.0"
+BOOTSTRAP_VERSION = "1.9.0"
 
 
 def main():

@@ -52,6 +52,7 @@ design_system:
   icon_library: lucide-vue-next
   color_mode: light-dark
   token_preset: slate-cyan
+  official_paradigm: "Naive UI 2.x 官方范式（naiveui.com 快速上手 + 主题定制）：不需要导入任何 CSS（组件独立导出、tree-shaking 友好，禁止 import naive-ui/dist/index.css 之类的全量样式）；主题入口是 n-config-provider :theme-overrides（JS 对象，GlobalThemeOverrides；暗色用 darkTheme）+ locale={zhCN} date-locale={dateZhCN}（均来自 naive-ui）；按需可配 unplugin-vue-components + NaiveUiResolver + unplugin-auto-import；主题令牌集中在一个 theme.ts 导出 themeOverrides 对象，页面不散落 hex"
   theme_entry:
     framework: frontend/src/main.ts
     global_tokens: frontend/src/styles/tokens.css

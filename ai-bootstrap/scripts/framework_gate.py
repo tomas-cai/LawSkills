@@ -80,6 +80,32 @@ FRAMEWORK_CONSTRAINTS: list[dict] = [
             "Space `direction` → `orientation`。",
         ],
     },
+    {
+        "library": "shadcn/ui",
+        "version": "3.x（v2 为 legacy）",
+        "notes": [
+            "shadcn/ui 官方安装范式（v3.shadcn.com/docs/installation/vite + Tailwind v4）："
+            "不是 npm 依赖，而是‘源码拷贝进项目’的组件库——pnpm dlx shadcn@latest init 生成 components.json、"
+            "globals.css 主题变量（--primary / --radius 等 CSS 变量 + 语义类名）与 src/lib/utils.ts（cn()），"
+            "组件用 pnpm dlx shadcn@latest add <component> 拷进 src/components/ui/。"
+            "Vite 接入：全局 CSS 以 @import \"tailwindcss\" 起步 + vite 插件 @tailwindcss/vite，tsconfig/vite 配 @/* 路径别名。"
+            "主题色只改 CSS 变量（--primary / --radius），页面使用 bg-primary / text-muted 等语义类名，不散落 hex 直接覆盖组件默认色。"
+            "禁止 babel-plugin-import 或运行时按需插件。`validate.py` 的 `ui-stack-conformance` 校验会拦截该反模式。",
+        ],
+    },
+    {
+        "library": "naive-ui",
+        "version": "2.x",
+        "notes": [
+            "Naive UI 2.x 官方范式（naiveui.com 快速上手 + 主题定制）：不需要导入任何 CSS（组件独立导出、tree-shaking 友好），"
+            "禁止 import 'naive-ui/dist/index.css' 之类的全量样式导入；组件直接 import { NButton } from 'naive-ui'。"
+            "主题入口是 n-config-provider :theme-overrides（JS 对象，GlobalThemeOverrides；暗色用 darkTheme）"
+            "+ locale={zhCN} date-locale={dateZhCN}（均来自 naive-ui，中文环境必须注入）。"
+            "按需可配 unplugin-vue-components + NaiveUiResolver + unplugin-auto-import。"
+            "主题令牌集中在一个 theme.ts 导出 themeOverrides 对象，页面不散落 hex。"
+            "`validate.py` 的 `ui-stack-conformance` 校验会拦截该反模式。",
+        ],
+    },
 ]
 
 

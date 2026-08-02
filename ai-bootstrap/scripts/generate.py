@@ -55,7 +55,7 @@ STARTER_TEXT_EXTENSIONS = {
 }
 STARTER_TEXT_FILENAMES = {".env.example", ".gitignore"}
 
-BOOTSTRAP_VERSION = "1.8.0"
+BOOTSTRAP_VERSION = "1.9.0"
 
 # Agent platform configurations
 AGENT_PLATFORMS = {
@@ -450,8 +450,22 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
         ])
         return "\n".join(lines)
 
+    paradigm = design.get("official_paradigm") or (
+        "该 UI 库尚未登记官方范式：接入前必须先查官方 starter / quickstart / template / theming 文档，"
+        "提取官方安装与主题入口范式后再生成瘦 DEMO。"
+    )
     lines.extend([
-        "## 2. 技术栈主题入口",
+        "## 2. UI 库官方范式",
+        "",
+        "> 接入本 UI 库时，必须先从官方 starter / quickstart / template / theming 文档提取官方安装与主题入口范式，"
+        "再生成瘦 DEMO；`validate.py` 的 `ui-stack-conformance` 会拦截偏离官方范式的做法。",
+        "",
+        f"- **范式**: {paradigm}",
+        "",
+    ])
+
+    lines.extend([
+        "## 3. 技术栈主题入口",
         "",
         "| 层次 | 入口 | 约束 |",
         "|---|---|---|",
@@ -460,7 +474,7 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
         f"| 组件主题 | {theme_entry.get('components', '组件库 theme/variants')} | 通过组件库 variants/slots 复用 |",
         f"| 图标 | {design.get('icon_library', '使用项目已选图标库')} | 统一尺寸、笔画和语义，不混用 emoji |",
         "",
-        "## 3. 语义颜色",
+        "## 4. 语义颜色",
         "",
         "| 令牌 | Light 基线 | 用途 |",
         "|---|---|---|",
@@ -479,7 +493,7 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
         "",
         "Dark mode 必须重新检查对比度，不能只对 Light 值做反转；状态色在 dark surface 上至少保持可读性。",
         "",
-        "## 4. Typography scale",
+        "## 5. Typography scale",
         "",
         "| 角色 | 字号 / 行高 | 字重 |",
         "|---|---|---|",
@@ -492,7 +506,7 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
         "",
         "字体优先使用产品允许的 web font；未加载成功时回退到 `Inter`, `PingFang SC`, `Microsoft YaHei`, `sans-serif`。标题、正文、标签和数据不得共用未定义的默认字号。",
         "",
-        "## 5. Layout、shape 与行为",
+        "## 6. Layout、shape 与行为",
         "",
         "- **Spacing**: `4, 8, 12, 16, 24, 32, 48, 64` px；页面区块优先使用 24/32/48 的节奏。",
         "- **Content width**: reading `720px`，workbench `1200px`，wide dashboard `1440px`；不要让首屏内容无限拉伸。",
@@ -503,21 +517,21 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
         "- **Motion**: 过渡 150–200ms，页面级进入动效不超过一次；尊重 `prefers-reduced-motion`。",
         "- **Focus**: 所有可交互元素必须有 2px focus ring，不能仅依赖颜色变化。",
         "",
-        "## 6. 组件基线",
+        "## 7. 组件基线",
         "",
     ])
     for component in component_baseline:
         lines.append(f"- [ ] `{component}`：定义 default / hover / pressed / selected / disabled / loading（适用时）状态，并验证键盘焦点与响应式表现。")
     lines.extend([
         "",
-        "## 7. 实现规则",
+        "## 8. 实现规则",
         "",
         f"1. 在 `{theme_entry.get('global_tokens', '全局主题文件')}` 建立语义变量，再映射到 `{ui_library}` 的 theme、slots 或 variants。",
         "2. 页面和业务组件只能消费语义令牌（如 `primary`, `surface`, `ink-muted`），禁止直接复制 hex、任意 Tailwind 色阶或 UI 库默认色。",
         "3. 首屏完成前，至少验收一个真实空状态、一个错误状态、一个表单控件和一个主操作，不以“组件能渲染”作为完成标准。",
         "4. 若产品领域需要更强识别度，优先调整 `accent`、字体和内容结构；不要用渐变、阴影和装饰堆砌来弥补没有设计方向。",
         "",
-        "## 8. 首屏验收清单",
+        "## 9. 首屏验收清单",
         "",
         "- [ ] 首屏能看出产品的单一核心任务，而不是 UI 库 starter demo。",
         "- [ ] 颜色、字号、间距、圆角、控件密度均来自本文件。",

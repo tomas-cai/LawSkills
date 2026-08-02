@@ -150,7 +150,9 @@ class BootstrapPipelineTests(unittest.TestCase):
             self.assertTrue(token_spec.exists())
             token_text = token_spec.read_text(encoding="utf-8")
             self.assertIn("shadcn", token_text)
-            self.assertIn("## 3. 语义颜色", token_text)
+            self.assertIn("## 4. 语义颜色", token_text)
+            self.assertIn("UI 库官方范式", token_text)
+            self.assertIn("shadcn/ui v3", token_text)
             readme_text = (Path(project) / "README.md").read_text(encoding="utf-8")
             self.assertIn("应用源码目录", readme_text)
             self.assertIn("apps/web", readme_text)
@@ -414,9 +416,9 @@ body {
         )
         for replacement in DEPRECATED_COMPONENTS.values():
             self.assertIn(replacement, all_notes, f"约束说明缺少替代名 {replacement}")
-        # UI 栈官方范式约束必须齐全（nuxt-ui / vant / element-plus / antd）
+        # UI 栈官方范式约束必须齐全（nuxt-ui / vant / element-plus / antd / shadcn / naive-ui）
         registered = {item.get("library") for item in FRAMEWORK_CONSTRAINTS}
-        for library in ("@nuxt/ui", "vant", "element-plus", "antd"):
+        for library in ("@nuxt/ui", "vant", "element-plus", "antd", "shadcn/ui", "naive-ui"):
             self.assertIn(library, registered, f"FRAMEWORK_CONSTRAINTS 缺少 {library} 约束")
 
     def test_nuxt_starter_renders_framework_constraints_and_passes_gate(self):
@@ -737,6 +739,179 @@ body {
             errors_text = "\n".join(antd_check["errors"])
             self.assertIn("v5-patch-for-react-19", errors_text)
             self.assertIn("bordered", errors_text)
+
+
+    # ── shadcn/ui 与 Naive UI 官方范式（P0，范式声明 + conformance 门禁）────────────
+
+    def test_shadcn_blueprints_declare_official_paradigm(self):
+        """next-fullstack / react-fastapi（shadcn）必须声明官方安装范式（components.json + Tailwind v4 CSS 变量）。"""
+        for blueprint_id in ("next-fullstack", "react-fastapi"):
+            with self.subTest(blueprint=blueprint_id):
+                blueprint = load_blueprint(blueprint_id)
+                paradigm = blueprint["design_system"].get("official_paradigm", "")
+                self.assertTrue(paradigm, f"{blueprint_id} 缺少 official_paradigm")
+                self.assertIn("shadcn", paradigm.lower())
+                self.assertIn("components.json", paradigm)
+                self.assertIn("tailwindcss", paradigm.lower())
+                self.assertIn("theme_entry", blueprint["design_system"])
+
+    def test_naive_ui_blueprint_declares_official_paradigm(self):
+        """vue-django（naive-ui）必须声明官方范式（无 CSS 导入 + n-config-provider theme-overrides + zhCN locale）。"""
+        blueprint = load_blueprint("vue-django")
+        paradigm = blueprint["design_system"].get("official_paradigm", "")
+        self.assertTrue(paradigm, "vue-django 缺少 official_paradigm")
+        self.assertIn("naive-ui", paradigm.lower())
+        self.assertIn("theme-overrides", paradigm)
+        self.assertIn("zhCN", paradigm)
+
+    def test_shadcn_conformance_passes_on_official_layout(self):
+        """shadcn 正样例：components.json + @import tailwindcss + --primary/--radius + 语义类名，conformance 必须 passed。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-shadcn-ok-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "react-fastapi",
+                "--name", "ShadDemo", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            frontend = Path(project) / "frontend"
+            (frontend / "src" / "components" / "ui").mkdir(parents=True, exist_ok=True)
+            (frontend / "src" / "lib").mkdir(parents=True, exist_ok=True)
+            (frontend / "components.json").write_text(
+                '{"style": "new-york", "tailwind": {"css": "src/index.css"}}', encoding="utf-8"
+            )
+            (frontend / "src" / "index.css").write_text(
+                '@import "tailwindcss";\n:root { --primary: #4f46e5; --radius: 0.5rem; }\n',
+                encoding="utf-8",
+            )
+            (frontend / "src" / "components" / "ui" / "button.tsx").write_text(
+                "export function Button(){return <button className='bg-primary'>btn</button>}\n",
+                encoding="utf-8",
+            )
+            (frontend / "src" / "lib" / "utils.ts").write_text(
+                "export const cn = (...a: string[]) => a.join(' ');\n", encoding="utf-8"
+            )
+            (frontend / "src" / "App.tsx").write_text(
+                "export default function App(){return <div className='bg-primary text-muted'>demo</div>}\n",
+                encoding="utf-8",
+            )
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            report = json.loads(validation.stdout)
+            shadcn_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+                and "shadcn" in str(c["details"].get("official_pattern", ""))
+            )
+            self.assertEqual(shadcn_check["status"], "passed", shadcn_check.get("warnings"))
+            self.assertEqual(shadcn_check["details"]["shadcn_apps"], 1)
+
+    def test_shadcn_conformance_rejects_babel_plugin_import(self):
+        """shadcn 负样例：依赖 babel-plugin-import 必须被 ui-stack-conformance 拦截。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-shadcn-fail-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "react-fastapi",
+                "--name", "ShadDemo", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            frontend = Path(project) / "frontend"
+            (frontend / "src" / "components" / "ui").mkdir(parents=True, exist_ok=True)
+            (frontend / "package.json").write_text(
+                '{"dependencies": {"babel-plugin-import": "^1.13.8", "react": "^19.0.0"}}',
+                encoding="utf-8",
+            )
+            (frontend / "components.json").write_text('{}', encoding="utf-8")
+            (frontend / "src" / "index.css").write_text(
+                '@import "tailwindcss";\n:root { --primary: #4f46e5; --radius: 0.5rem; }\n',
+                encoding="utf-8",
+            )
+            (frontend / "src" / "App.tsx").write_text(
+                "export default function App(){return <div className='bg-primary'>demo</div>}\n",
+                encoding="utf-8",
+            )
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            report = json.loads(validation.stdout)
+            shadcn_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+                and "shadcn" in str(c["details"].get("official_pattern", ""))
+            )
+            self.assertEqual(shadcn_check["status"], "failed")
+            self.assertIn("babel-plugin-import", "\n".join(shadcn_check["errors"]))
+
+    def test_naive_ui_conformance_passes_on_official_layout(self):
+        """Naive UI 正样例：无 CSS 导入 + n-config-provider theme-overrides + zhCN/dateZhCN，conformance 必须 passed。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-naive-ok-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "vue-django",
+                "--name", "NaiveDemo", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            frontend = Path(project) / "frontend"
+            (frontend / "src").mkdir(parents=True, exist_ok=True)
+            (frontend / "package.json").write_text(
+                '{"dependencies": {"naive-ui": "^2.42.0", "vue": "^3.5.0"}}', encoding="utf-8"
+            )
+            (frontend / "src" / "theme.ts").write_text(
+                "import type { GlobalThemeOverrides } from 'naive-ui'\n"
+                "export const themeOverrides: GlobalThemeOverrides = { common: { primaryColor: '#4f46e5' } }\n",
+                encoding="utf-8",
+            )
+            (frontend / "src" / "main.ts").write_text(
+                "import { createApp } from 'vue'\nimport App from './App.vue'\ncreateApp(App).mount('#app')\n",
+                encoding="utf-8",
+            )
+            (frontend / "src" / "App.vue").write_text(
+                "<template><n-config-provider :theme-overrides=\"themeOverrides\" :locale=\"zhCN\""
+                " :date-locale=\"dateZhCN\"><n-button>btn</n-button></n-config-provider></template>\n"
+                "<script setup lang='ts'>import { zhCN, dateZhCN } from 'naive-ui'\n"
+                "import { themeOverrides } from './theme'\n</script>\n",
+                encoding="utf-8",
+            )
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            self.assertEqual(validation.returncode, 0, validation.stderr)
+            report = json.loads(validation.stdout)
+            naive_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+                and "naive" in str(c["details"].get("official_pattern", "")).lower()
+            )
+            self.assertEqual(naive_check["status"], "passed", naive_check.get("warnings"))
+            self.assertEqual(naive_check["details"]["naive_apps"], 1)
+
+    def test_naive_ui_conformance_rejects_css_import(self):
+        """Naive UI 负样例：导入全量 CSS（naive-ui/dist/index.css）必须被 ui-stack-conformance 拦截。"""
+        with tempfile.TemporaryDirectory(prefix="ai-bootstrap-naive-fail-") as project:
+            result = self.run_script(
+                "generate.py", "--dir", project, "--blueprint", "vue-django",
+                "--name", "NaiveDemo", "--agents", "codex",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            frontend = Path(project) / "frontend"
+            (frontend / "src").mkdir(parents=True, exist_ok=True)
+            (frontend / "package.json").write_text(
+                '{"dependencies": {"naive-ui": "^2.42.0", "vue": "^3.5.0"}}', encoding="utf-8"
+            )
+            (frontend / "src" / "main.ts").write_text(
+                "import 'naive-ui/dist/index.css'\nimport { createApp } from 'vue'\n",
+                encoding="utf-8",
+            )
+            (frontend / "src" / "App.vue").write_text(
+                "<template><n-config-provider :theme-overrides=\"themeOverrides\">"
+                "<n-button>btn</n-button></n-config-provider></template>\n",
+                encoding="utf-8",
+            )
+
+            validation = self.run_script("validate.py", "--dir", project, "--json")
+            report = json.loads(validation.stdout)
+            naive_check = next(
+                c for c in report["checks"]
+                if c["name"] == "ui-stack-conformance" and c["status"] != "skipped"
+                and "naive" in str(c["details"].get("official_pattern", "")).lower()
+            )
+            self.assertEqual(naive_check["status"], "failed")
+            self.assertIn("naive-ui/dist", "\n".join(naive_check["errors"]))
 
 
 if __name__ == "__main__":
