@@ -866,7 +866,8 @@ def check_demo_visual_baseline(project_path: Path, report: ValidationReport) -> 
             "css_tokens": False,
             "layouts": bool((app_src / "layouts").is_dir() and list((app_src / "layouts").glob("*.vue"))),
             "empty_state": (app_src / "components" / "EmptyState.vue").exists(),
-            "seed_data": (app_src / "utils" / "seed.ts").exists(),
+            "seed_data": (app_src / "utils" / "seed.ts").exists()
+            or (app_src / "utils" / "dashboard.ts").exists(),
         }
         # 字体证据：接受官方默认的 plugins/fonts.ts，也接受把 fontsource @import
         # 内联进 main.css 的合法优化（见 MEMORY 决策：避免为了过检查而复制 fonts.ts）。

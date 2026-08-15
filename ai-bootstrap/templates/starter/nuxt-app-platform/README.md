@@ -1,20 +1,28 @@
-# app-web-platform — {{PROJECT_NAME}} 平台运营管理后台（Nuxt 4 + Nuxt UI）
+# {{PROJECT_NAME}} · 平台运营管理后台（app-web-platform）
 
-> DEMO 视觉基线：侧边栏 + 指标卡 + Nuxt UI v4 官方主题范式，开箱即 DEMO。
-> 已验证版本：nuxt ^4.0.0 / @nuxt/ui ^4.0.0 / tailwindcss ^4.3.0 / @nuxt/icon ^2.4.0 / vue-tsc ^3.3.9 / @fontsource-variable/inter ^5.2.0（可选，默认跳过）。
+基于 **Nuxt UI v4 官方 Dashboard 模板范式**（[nuxt-ui-templates/dashboard](https://github.com/nuxt-ui-templates/dashboard)）构建的运营管理后台起步基线。
 
-## 目录约定（Nuxt 4）
+## 布局体系（官方范式）
 
-- 应用源码统一放在 `app/`：pages、layouts、components、composables、plugins、utils。
-- 主题入口：`app/app.config.ts`（Nuxt UI `ui.colors` 语义色映射 + font）。
-- 品牌令牌：`app/assets/css/main.css` 的 `@theme static`（`--color-brand-*` / `--color-accent-*` 全色阶），遵循 Nuxt UI v4 / Tailwind v4 官方范式。
-- 语义色注册：`nuxt.config.ts` 的 `ui.theme.colors`。
-- 字体加载（**可选，默认跳过**）：`@fontsource-variable/inter`（Google 字体打包）国内下载慢/易失败，默认不引入（`fonts.ts` / `main.css` 只留说明注释，走系统字体栈）；需要时用 `generate.py --fonts` 重新生成。
-- 页面只使用 `bg-primary` / `text-muted` / `border-default` 等语义工具类，禁止散落 hex 与 `--mc-*` 自定义令牌。
+| 组件 | 职责 |
+|---|---|
+| `UDashboardGroup` + `UDashboardSidebar` | 侧边栏骨架：可折叠（collapsible）+ 可拖拽调宽（resizable） |
+| `UDashboardSearchButton` + `UDashboardSearch` | 全局命令面板（`⌘K`） |
+| `UNavigationMenu` | 侧边栏导航（vertical + tooltip + popover） |
+| `UDashboardPanel` + `UDashboardNavbar` | 每个页面的内容面板与顶栏（含 `UDashboardSidebarCollapse`） |
+| `UserMenu` | 用户菜单：明暗主题切换 + 系统设置 + 退出 |
+| `NotificationsSlideover` | 右侧「最近动态」抽屉（`USlideover`） |
 
-## 冒烟检查
+## 约定
+
+- 页面一律使用 `UDashboardPanel`（header/body 两个 slot），不再手写 `min-h-screen` 布局。
+- 键盘快捷键：`g-h` 运营概览、`g-e` 企业管理、`g-j` 岗位管理、`g-s` 系统设置、`n` 打开最近动态。
+- 种子数据集中在 `app/utils/dashboard.ts`（mock-first 边界），接入真实 API 时替换数据源即可。
+- 主题令牌入口：`app/app.config.ts`（语义色映射）+ `app/assets/css/main.css`（`@theme static` 品牌色阶）。
+- 组件内只使用 `bg-primary` / `text-muted` / `border-default` / `bg-elevated` 等语义工具类，禁止散落 hex。
+
+## 开发
 
 ```bash
 pnpm --filter @{{PROJECT_SLUG}}/web-platform dev
-# http://127.0.0.1:3002 → 运营概览
 ```

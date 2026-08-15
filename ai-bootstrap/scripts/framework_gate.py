@@ -31,12 +31,17 @@ FRAMEWORK_CONSTRAINTS: list[dict] = [
     {
         "library": "@nuxt/ui",
         "version": "4.x",
-        "official_demo_url": "https://nuxt.com/templates",
+        "official_demo_url": "https://github.com/nuxt-ui-templates/dashboard",
         "official_docs_url": "https://ui.nuxt.com/docs/getting-started/installation",
         "notes": [
             "Nuxt UI v4 将 `UFormGroup` 重命名为 `UFormField`：表单分组一律使用 `<UFormField label=\"...\">`，"
             "禁止使用已废弃的 `UFormGroup`（v4 不再注册，会导致 SSR 塌陷与 hydration mismatch）。"
             "`validate.py` 的 `framework-component-gate` 校验会拦截该问题。",
+                        "管理后台（dashboard 类页面）以官方 nuxt-ui-templates/dashboard 为起点："
+            "使用 UDashboardGroup / UDashboardSidebar（collapsible + resizable）/ UDashboardPanel / UDashboardNavbar / "
+            "UDashboardSearchButton + UNavigationMenu 体系搭建布局，用户菜单用 UDropdownMenu 承载 系统设置/外观(明暗切换)/退出登录；"
+            "键盘快捷键约定：g-<首字母> 页面跳转、n 打开最近动态抽屉；共享状态用 useState 而非 @vueuse/createSharedComposable，"
+            "useState 必须写在 composable 函数体内（模块级调用会触发 NUXT_E1001）。",
             "@nuxt/icon 默认 CSS 模式：图标通过 CSS mask 渲染为 `<span class=\"iconify\">`，属正常行为，"
             "不要误判为空图标或改为内联 SVG。若出现 `[Icon] failed to load icon` 警告，"
             "优先确认图标名在对应 collection 中存在（如新版 lucide 将 `check-circle-2` 更名为 `circle-check-big`）。",

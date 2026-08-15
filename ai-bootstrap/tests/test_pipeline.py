@@ -239,7 +239,14 @@ class BootstrapPipelineTests(unittest.TestCase):
                 "apps/app-web-hr/app/utils/seed.ts",
                 "apps/app-web-hr/app/components/EmptyState.vue",
                 "apps/app-web-platform/app/layouts/default.vue",
-                "apps/app-web-platform/app/components/AppSidebar.vue",
+                "apps/app-web-platform/app/components/AppSidebarHeader.vue",
+                "apps/app-web-platform/app/components/UserMenu.vue",
+                "apps/app-web-platform/app/components/NotificationsSlideover.vue",
+                "apps/app-web-platform/app/composables/useDashboard.ts",
+                "apps/app-web-platform/app/composables/useAuth.ts",
+                "apps/app-web-platform/app/middleware/admin-auth.ts",
+                "apps/app-web-platform/app/pages/login.vue",
+                "apps/app-web-platform/app/utils/dashboard.ts",
                 "apps/app-web-server/routes/health.ts",
                 "apps/app-web-server/routes/api/echo.ts",
             ):
@@ -1127,7 +1134,7 @@ body {
 
             readme = (Path(project) / "README.md").read_text(encoding="utf-8")
             self.assertIn("与官方 DEMO 对齐", readme)
-            self.assertIn("nuxt.com/templates", readme)
+            self.assertIn("github.com/nuxt-ui-templates/dashboard", readme)
             self.assertIn("ui.nuxt.com", readme)
             self.assertIn("ui-stack-conformance", readme)
             self.assertIn("starter 目录已生成", readme)
@@ -1135,16 +1142,16 @@ body {
             spec = (Path(project) / "docs" / "00-research" / "design-token-spec.md").read_text(encoding="utf-8")
             self.assertIn("与官方 DEMO 对齐清单", spec)
             self.assertIn("官方 DEMO / 模板", spec)
-            self.assertIn("nuxt.com/templates", spec)
+            self.assertIn("github.com/nuxt-ui-templates/dashboard", spec)
 
             design = (Path(project) / "docs" / "DESIGN.md").read_text(encoding="utf-8")
             self.assertIn("官方 DEMO / 模板", design)
-            self.assertIn("nuxt.com/templates", design)
+            self.assertIn("github.com/nuxt-ui-templates/dashboard", design)
 
     def test_official_demo_alignment_covers_all_ui_stacks(self):
         """6 个 UI 栈 Blueprint 生成的 README 都渲染对应官方 demo 链接。"""
         cases = {
-            "nuxt-ai-fullstack": "nuxt.com/templates",
+            "nuxt-ai-fullstack": "github.com/nuxt-ui-templates/dashboard",
             "uni-app-nitro": "vant-ui.github.io/vant",
             "vue-element-plus-nitro": "element-plus.org",
             "react-springboot": "ant.design",
