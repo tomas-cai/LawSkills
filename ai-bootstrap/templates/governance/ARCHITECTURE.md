@@ -4,12 +4,12 @@ blueprint_id: {{BLUEPRINT_ID}}
 generated: {{CREATED_DATE}}
 ---
 
-# DESIGN.md — 设计文档
+# ARCHITECTURE.md — 架构与实现约束
 
-> 此文件记录项目的设计决策和架构约束。
+> 此文件记录项目的架构决策和实现约束，不是 UI 设计稿或设计令牌规范。
 > 所有 Agent 在修改代码前应参考此文档。
 
-> 前端设计令牌基线见 `docs/00-research/design-token-spec.md`。UI 库默认主题不得直接作为产品最终视觉系统。
+> 前端设计令牌基线见 {{DESIGN_TOKEN_REFERENCE}}。UI 设计系统资产与本文件分离；UI 库默认主题不得直接作为产品最终视觉系统。
 
 ---
 

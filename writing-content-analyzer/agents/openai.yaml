@@ -1,0 +1,4 @@
+interface:
+  display_name: "写作素材分析"
+  short_description: "把多种原始素材整理为可追溯的结构化写作素材包与证据清单"
+  default_prompt: "使用 $writing-content-analyzer 分析这批原始素材并生成结构化素材包。"

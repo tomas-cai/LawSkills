@@ -96,7 +96,9 @@ dna:
 
 ### 项目目录契约
 
-目录职责表与约定以 [`docs/DESIGN.md`](DESIGN.md)「项目目录契约」为唯一来源。
+目录职责表与约定以 [`docs/ARCHITECTURE.md`](ARCHITECTURE.md)「项目目录契约」为唯一来源。
+
+前端项目的正式设计令牌见 {{DESIGN_TOKEN_REFERENCE}}；Research 目录只保留设计令牌决策记录。
 
 {{PROJECT_SKILLS_SECTION}}
 

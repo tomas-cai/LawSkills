@@ -1,6 +1,6 @@
 // @agent: codex
 // Naive UI 2.x 主题令牌唯一来源：GlobalThemeOverrides JS 对象
-// 语义色与 docs/00-research/design-token-spec.md 一致（structured operations desk preset）；
+// 语义色与 design-system/{{PROJECT_SLUG}}/TOKENS.md 一致（structured operations desk preset）；
 // 页面不散落 hex；需要暗色时切换 darkTheme（来自 naive-ui，与 themeOverrides 合并传入）。
 import type { GlobalThemeOverrides } from 'naive-ui'
 

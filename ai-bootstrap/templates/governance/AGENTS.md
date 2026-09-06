@@ -22,17 +22,18 @@ generated: {{CREATED_DATE}}
 ## 上下文读取顺序 (Context Router)
 
 context_router: standard
-router_order: AGENTS.md → docs/PROJECT_PROFILE.md → docs/DESIGN.md → docs/ai/MEMORY.md → docs/06-decisions/adr/INDEX.md → docs/03-plans/current.md
+router_order: AGENTS.md → docs/PROJECT_PROFILE.md → docs/ARCHITECTURE.md → {{DESIGN_TOKEN_PATH}} (前端项目) → docs/ai/MEMORY.md → docs/06-decisions/adr/INDEX.md → docs/03-plans/current.md
 
 所有 Agent 在开始工作前，按以下顺序读取上下文文件：
 
 ```
 1. AGENTS.md                              — 你的角色和权限 (当前文件)
 2. docs/PROJECT_PROFILE.md                — 项目 DNA (唯一事实来源)
-3. docs/DESIGN.md                         — 设计文档和架构约束
-4. docs/ai/MEMORY.md                      — AI 记忆和当前状态
-5. docs/06-decisions/adr/INDEX.md         — 最近的架构决策
-6. docs/03-plans/current.md               — 当前任务
+3. docs/ARCHITECTURE.md                   — 架构与实现约束
+4. {{DESIGN_TOKEN_PATH}}                  — UI 设计系统与令牌（仅前端项目）
+5. docs/ai/MEMORY.md                      — AI 记忆和当前状态
+6. docs/06-decisions/adr/INDEX.md         — 最近的架构决策
+7. docs/03-plans/current.md               — 当前任务
 ```
 
 ---

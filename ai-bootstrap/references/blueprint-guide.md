@@ -63,11 +63,11 @@ skills:
 - 数据库使用 `stack.database.primary` 表示主数据库，版本放在 `stack.database.version` 或主数据库对象中。
 - 所有值必须能被 AI Bootstrap 的依赖无关 YAML 子集解析。
 - 新 Blueprint 至少需要一个生成与验证回归测试。
-- 包含前端时必须声明 `design_system`：UI 库、样式方案、图标、主题入口和组件基线；这些字段用于生成 `docs/00-research/design-token-spec.md`。
+- 包含前端时必须声明 `design_system`：UI 库、样式方案、图标、主题入口和组件基线；这些字段用于生成 `design-system/<project-slug>/TOKENS.md`。可用 `token_path` 指定现有项目的正式令牌路径。
 - `design_system` 只声明实现能力和入口，不把 UI 库默认主题当作产品设计；颜色和版式由生成的语义令牌规范进一步确认。
 - 必须声明 `layout`：`source_root` 与 `key_dirs` 要符合技术栈官方约定，不要自创目录名；官方未规定子目录时，采用该生态常见模块边界并在 `conventions` 中说明。
 - 建议声明 `commands`：从项目根目录可直接运行的安装、启动和测试命令，避免生成 README 时给不同技术栈套用同一个 `pnpm install`。
-- 可选声明 `environment`：`backend_runtime` 记录后端运行时基线（如 Spring Boot 3.x 用 `JDK 17 + Maven 3.9+`），`notes` 追加补充说明；生成器会把派生的「环境与工具链基线」写入 AGENTS.md / PROJECT_PROFILE.md / DESIGN.md / README，指导 AI Agent 安装环境时参考。
+- 可选声明 `environment`：`backend_runtime` 记录后端运行时基线（如 Spring Boot 3.x 用 `JDK 17 + Maven 3.9+`），`notes` 追加补充说明；生成器会把派生的「环境与工具链基线」写入 AGENTS.md / PROJECT_PROFILE.md / ARCHITECTURE.md / README，指导 AI Agent 安装环境时参考。
 - 字体策略由生成器统一处理：涉及 Google 字体打包（`vfonts` / `@fontsource-variable/inter`）的 starter **默认跳过字体**（国内下载慢/易失败），`generate.py --fonts`（或 `AI_BOOTSTRAP_FONTS=1`）才引入依赖与 import；Blueprint 不必为此声明字段。
 - 可选声明 `skills`：当技术栈提供官方 AI Skill 时，记录名称、安装命令、触发词和官方文档；生成器会写入 `AGENTS.md`、`README.md` 和 `PROJECT_PROFILE.md`。
 - 后端框架使用独立 npm 包名时，应在 `stack.backend.package` 声明真实包名；例如独立 Nitro API 使用 `nitropack`，而不是旧版 `nitro` 包。
@@ -76,7 +76,7 @@ skills:
 ## 目录结构契约
 
 - 顶层治理结构（`AGENTS.md`、`docs/`、`.ai-bootstrap/`）在所有 Blueprint 间保持统一。
-- 应用源码目录按每个 Blueprint 的 `layout` 声明，生成器会把目录表写入 `README.md`、`DESIGN.md` 和 `PROJECT_PROFILE.md`。
+- 应用源码目录按每个 Blueprint 的 `layout` 声明，生成器会把目录表写入 `README.md`、`ARCHITECTURE.md` 和 `PROJECT_PROFILE.md`。
 - 新项目按官方约定生成骨架；现有项目不强制重构，`detect.py` 记录实际结构，AI 按现状工作。
 - 多应用项目每个 app 独立声明 `layout`，不共用一套源码结构。
 
@@ -88,7 +88,7 @@ skills:
 - 产品级语义令牌可以共享，但实现入口按应用分别声明。
 - 移动端默认推荐 uni-app + Vue3 + uni-ui；它与现有后端 Blueprint 组合，而不是复用 PC 前端方案。
 - `docs/00-research/stack-decision.md` 必须记录每个应用的完整组合。
-- `docs/00-research/design-token-spec.md` 必须按应用记录主题入口、组件基线和验收标准。
+- `design-system/<project>/TOKENS.md` 必须按应用记录主题入口、组件基线和验收标准。
 
 当前生成器以主应用为生成目标；多应用组合由 Codex 在生成后按 `references/design-token-guide.md` 补写，并纳入最终验证检查。
 

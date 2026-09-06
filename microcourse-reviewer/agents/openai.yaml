@@ -1,0 +1,4 @@
+interface:
+  display_name: "微课评审"
+  short_description: "评审微课与主课的目标对齐、学习体验、交付质量和维护风险"
+  default_prompt: "使用 $microcourse-reviewer 评审这组配套微课的教学与交付质量。"

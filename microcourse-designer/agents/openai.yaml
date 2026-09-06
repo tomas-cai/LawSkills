@@ -1,0 +1,4 @@
+interface:
+  display_name: "微课设计"
+  short_description: "将微课候选设计成目标清晰、可互动、可验证的完整学习单元"
+  default_prompt: "使用 $microcourse-designer 设计一节目标清晰、可互动、可验证的微课。"

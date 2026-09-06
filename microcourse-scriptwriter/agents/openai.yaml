@@ -1,0 +1,4 @@
+interface:
+  display_name: "微课脚本"
+  short_description: "编写适合短时学习的口播稿、逐镜分镜和可执行录屏脚本"
+  default_prompt: "使用 $microcourse-scriptwriter 把微课设计转成口播稿和逐镜分镜。"

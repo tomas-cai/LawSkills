@@ -1,5 +1,5 @@
 /* ── Element Plus 2.x 设计令牌：--el-* CSS 变量覆盖 ──
- * 语义色与 docs/00-research/design-token-spec.md 一致（enterprise-ops-desk preset）；
+ * 语义色与 design-system/{{PROJECT_SLUG}}/TOKENS.md 一致（enterprise-ops-desk preset）；
  * 官方主题入口：:root 全局覆盖或组件类名作用域覆盖（如 .my-card { --el-card-bg-color: ... }）；
  * 需要编译期定制时可用 SCSS：@use 'element-plus/theme-chalk/src/common/var.scss' with (...) 并 @forward 覆盖。
  */

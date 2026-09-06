@@ -1,0 +1,4 @@
+interface:
+  display_name: "写作风格规范"
+  short_description: "从样文提炼可加载的个人写作风格规则与可复用示例内容"
+  default_prompt: "使用 $writing-style-guide 生成一份可供后续写作加载的风格规则。"

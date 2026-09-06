@@ -1,0 +1,4 @@
+interface:
+  display_name: "文章配图排版"
+  short_description: "生成配图方案、图片提示词与平台化图文交付文件和版权记录"
+  default_prompt: "使用 $writing-article-illustrator 为这篇文章制作配图清单和排版交付物。"

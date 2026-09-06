@@ -23,18 +23,20 @@ from yaml_utils import load_yaml, load_yaml_text
 from framework_gate import DEPRECATED_COMPONENTS
 
 from layout import (
+    ARCHITECTURE_PATH,
     ADR_DIR,
     ADR_INDEX_PATH,
     CURRENT_TASKS_PATH,
     DECISION_INDEX_PATH,
-    DESIGN_PATH,
-    DESIGN_TOKEN_SPEC_PATH,
+    DESIGN_TOKEN_DECISION_PATH,
+    LEGACY_DESIGN_TOKEN_SPEC_PATH,
     INITIAL_ADR_PATH,
     MANIFEST_PATH,
     MEMORY_PATH,
     PROJECT_PROFILE_PATH,
     REQUIRED_DIRECTORIES,
     REVIEW_INDEX_PATH,
+    resolve_design_token_path,
 )
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
@@ -142,8 +144,8 @@ def check_file_integrity(project_path: Path, report: ValidationReport) -> None:
     required_files = [
         Path("AGENTS.md"),
         PROJECT_PROFILE_PATH,
-        DESIGN_PATH,
-        DESIGN_TOKEN_SPEC_PATH,
+        ARCHITECTURE_PATH,
+        DESIGN_TOKEN_DECISION_PATH,
         MEMORY_PATH,
         ADR_INDEX_PATH,
         CURRENT_TASKS_PATH,
@@ -343,36 +345,24 @@ def check_dna_completeness(project_path: Path, report: ValidationReport) -> None
 
 
 def check_design_token_spec(project_path: Path, report: ValidationReport) -> None:
-    """Verify the generated design contract matches the selected frontend stack."""
+    """Verify the canonical design-system token contract for frontend projects."""
     check = ValidationCheck(
         "design-token-spec",
-        "Verify stack-aware design token specification exists and names its theme entry",
+        "Verify frontend tokens live in design-system and name their theme entry",
     )
-    spec_path = project_path / DESIGN_TOKEN_SPEC_PATH
     manifest_path = project_path / MANIFEST_PATH
     blueprint_id = None
+    manifest = {}
     if manifest_path.exists():
         try:
-            blueprint_id = load_yaml(manifest_path).get("manifest", {}).get("blueprint", {}).get("id")
+            manifest = load_yaml(manifest_path).get("manifest", {})
+            blueprint_id = manifest.get("blueprint", {}).get("id")
         except Exception:
             blueprint_id = None
 
-    if not spec_path.exists():
-        check.status = "failed"
-        check.errors = [f"Missing required design token spec: {DESIGN_TOKEN_SPEC_PATH}"]
-        report.add_check(check)
-        return
-
-    try:
-        text = spec_path.read_text(encoding="utf-8")
-    except Exception as exc:
-        check.status = "failed"
-        check.errors = [f"Cannot read {DESIGN_TOKEN_SPEC_PATH}: {exc}"]
-        report.add_check(check)
-        return
-
     expected_ui = None
     frontend = {}
+    blueprint = {}
     if blueprint_id:
         blueprint_path = BLUEPRINTS_DIR / f"{blueprint_id}.yaml"
         if blueprint_path.exists():
@@ -382,6 +372,59 @@ def check_design_token_spec(project_path: Path, report: ValidationReport) -> Non
                 expected_ui = frontend.get("ui_library")
             except Exception:
                 pass
+
+    # Existing projects may use a project-specific Blueprint that is not part
+    # of the bundled registry. Recover the real frontend contract from the
+    # generated project DNA instead of misclassifying it as backend-only.
+    if not frontend:
+        profile_path = project_path / PROJECT_PROFILE_PATH
+        if profile_path.exists():
+            try:
+                profile = load_yaml_text(profile_path.read_text(encoding="utf-8"))
+                frontend = profile.get("dna", {}).get("tech_stack", {}).get("frontend", {})
+                expected_ui = frontend.get("ui_library") if isinstance(frontend, dict) else None
+            except Exception:
+                frontend = {}
+
+    if frontend.get("framework") in (None, "", "none"):
+        check.status = "passed"
+        check.details = {
+            "path": "not-applicable",
+            "blueprint_id": blueprint_id or "unknown",
+            "ui_library": "none",
+            "reason": "Blueprint does not include a frontend",
+        }
+        report.add_check(check)
+        return
+
+    governance = manifest.get("governance", {}) if isinstance(manifest, dict) else {}
+    token_rel = governance.get("design_tokens") if isinstance(governance, dict) else None
+    spec_path = project_path / token_rel if token_rel and token_rel != "not-applicable" else None
+    if spec_path is None:
+        project_slug = str(manifest.get("project", {}).get("name", project_path.name)).lower()
+        spec_path = project_path / resolve_design_token_path(project_path, blueprint, project_slug)
+
+    legacy_path = project_path / LEGACY_DESIGN_TOKEN_SPEC_PATH
+    legacy_warning = False
+    if not spec_path.exists() and legacy_path.exists():
+        legacy_warning = True
+        check.warnings = [
+            f"Legacy design token location detected: {LEGACY_DESIGN_TOKEN_SPEC_PATH}; migrate it to {spec_path.relative_to(project_path)}"
+        ]
+        spec_path = legacy_path
+    elif not spec_path.exists():
+        check.status = "failed"
+        check.errors = [f"Missing canonical design token spec: {spec_path.relative_to(project_path)}"]
+        report.add_check(check)
+        return
+
+    try:
+        text = spec_path.read_text(encoding="utf-8")
+    except Exception as exc:
+        check.status = "failed"
+        check.errors = [f"Cannot read {spec_path.relative_to(project_path)}: {exc}"]
+        report.add_check(check)
+        return
 
     required_markers = [
         "## 2. UI 库官方范式",
@@ -405,7 +448,8 @@ def check_design_token_spec(project_path: Path, report: ValidationReport) -> Non
         issues.append("backend-only Blueprint must explicitly mark design tokens as not applicable")
 
     check.details = {
-        "path": str(DESIGN_TOKEN_SPEC_PATH),
+        "path": str(spec_path.relative_to(project_path)),
+        "canonical_path": str((project_path / token_rel).relative_to(project_path)) if token_rel and token_rel != "not-applicable" else str(spec_path.relative_to(project_path)),
         "blueprint_id": blueprint_id or "unknown",
         "ui_library": expected_ui or "none",
         "missing_sections": missing_markers,
@@ -413,6 +457,8 @@ def check_design_token_spec(project_path: Path, report: ValidationReport) -> Non
     if issues:
         check.status = "failed"
         check.errors = issues
+    elif legacy_warning:
+        check.status = "warning"
     else:
         check.status = "passed"
     report.add_check(check)
@@ -425,10 +471,10 @@ def check_project_layout(project_path: Path, report: ValidationReport) -> None:
         "Verify stack-specific directory layout is documented",
     )
 
-    design_path = project_path / DESIGN_PATH
+    design_path = project_path / ARCHITECTURE_PATH
     if not design_path.exists():
         check.status = "failed"
-        check.errors = ["docs/DESIGN.md not found"]
+        check.errors = ["docs/ARCHITECTURE.md not found"]
         report.add_check(check)
         return
 
@@ -436,7 +482,7 @@ def check_project_layout(project_path: Path, report: ValidationReport) -> None:
         design_text = design_path.read_text(encoding="utf-8")
     except Exception as exc:
         check.status = "failed"
-        check.errors = [f"Cannot read docs/DESIGN.md: {exc}"]
+        check.errors = [f"Cannot read docs/ARCHITECTURE.md: {exc}"]
         report.add_check(check)
         return
 
@@ -464,7 +510,7 @@ def check_project_layout(project_path: Path, report: ValidationReport) -> None:
 
     issues = []
     if "项目目录契约" not in design_text or "| 目录 | 职责 |" not in design_text:
-        issues.append("docs/DESIGN.md missing stack-specific directory contract")
+        issues.append("docs/ARCHITECTURE.md missing stack-specific directory contract")
     if readme_text is not None and "AI Bootstrap" in readme_text and "应用源码目录" not in readme_text:
         issues.append("README.md missing stack-specific application layout section")
     if profile_text is not None and "项目目录契约" not in profile_text:
@@ -487,7 +533,7 @@ def check_project_layout(project_path: Path, report: ValidationReport) -> None:
                 if isinstance(key_dirs, dict) and key_dirs:
                     declared_path = next(iter(key_dirs))
                     if declared_path not in design_text:
-                        issues.append(f"docs/DESIGN.md does not document declared layout path: {declared_path}")
+                        issues.append(f"docs/ARCHITECTURE.md does not document declared layout path: {declared_path}")
             except Exception:
                 pass
 
@@ -657,7 +703,7 @@ def check_syntax(project_path: Path, report: ValidationReport) -> None:
     md_files = [
         project_path / "AGENTS.md",
         project_path / PROJECT_PROFILE_PATH,
-        project_path / DESIGN_PATH,
+        project_path / ARCHITECTURE_PATH,
         project_path / MEMORY_PATH,
         project_path / "README.md",
     ]

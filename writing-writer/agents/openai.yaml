@@ -1,0 +1,4 @@
+interface:
+  display_name: "写作初稿生成"
+  short_description: "按大纲、素材与风格约束完成可交付的文章初稿与事实标记"
+  default_prompt: "使用 $writing-writer 按既定大纲和风格规则完成文章初稿。"

@@ -37,7 +37,7 @@ deciders:
 
 ## 合规性
 
-- 所有代码应遵循 docs/DESIGN.md 中的架构约束
+- 所有代码应遵循 docs/ARCHITECTURE.md 中的架构与实现约束；前端视觉实现遵循 design-system/<product>/TOKENS.md
 - 任何偏离此决策的变更需要创建新的 ADR
 
 ## 参考

@@ -1,13 +1,31 @@
-# 课程开发三 Skill 体系
+# Skill 体系目录
+
+本目录中的 Skill 按系列前缀组织，实际 Skill 文件夹保持平铺，便于 Codex 自动发现；系列说明文档负责描述协作关系和产物链。
+
+## 系列索引
+
+| 系列 | Skill | 系列说明 |
+|---|---|---|
+| 写作系列 | `writing-*` 7 个 Skill | [`writing-series-plan.md`](writing-series-plan.md) |
+| 课程开发系列 | `course-discovery`、`course-design`、`course-practice-project-evaluator`、`course-polish`、`course-review` | [`course-development-series.md`](course-development-series.md) |
+| 微课补充系列 | `microcourse-*` 5 个 Skill | [`microcourse-development-series.md`](microcourse-development-series.md) |
+| AI 工程治理系列 | `project-scaffold`、`ai-bootstrap` | [`ai-engineering-governance-series.md`](ai-engineering-governance-series.md) |
+| 价值观案例 | `values-case-writing` | 当前为独立 Skill |
+
+---
+
+## 课程开发五 Skill 体系
 
 > 把课程当作产品做——从发现培训商机、到设计开发、再到质量评审，全流程覆盖。
 
-三个独立 Skill 通过**文件命名约定**协作：
+五个独立 Skill 通过**文件命名约定**协作：
 
 | Skill | 做什么 | 触发词 | 产出物 |
 |:---|:---|:---|:---|
 | **course-discovery** | 探索培训方向 | 培训需求发现、头脑风暴课程机会 | `00-培训需求spec.md` |
 | **course-design** | 开发课程 | 开发课程、设计培训方案 | `01~05` 阶段文件 |
+| **course-practice-project-evaluator** | 实战项目立项评估 | 评估 AI 软件开发课程实践项目 | `实操项目立项评估.md` |
+| **course-polish** | 润色课时体验 | 润色讲师话术、课堂节奏和互动 | 润色版讲师手册/课件备注 |
 | **course-review** | 评审课程质量 | 审阅课程、质量检查 | 评审报告 |
 
 ---
@@ -33,7 +51,9 @@
 
 ---
 
-## 三 Skill 协作流程
+## 课程开发 Skill 协作流程
+
+> 下图是“课程先行”的默认路径。若课程本身围绕一个 AI 软件项目展开，可将 `course-practice-project-evaluator` 前置到 `course-design` 之前；无论哪条路径，它都位于教学材料开发之前。
 
 ```
 用户说"我想看看有什么培训机会"
@@ -53,11 +73,38 @@
   course-design Skill
   ├── Phase 01 分析（需求拆解→画像→能力诊断）
   ├── Phase 02 设计（目标→情绪曲线→对齐）
+  └── 形成课程设计方案与实践项目候选
+        │
+        │  产出 01-需求定位报告.md、02-课程设计方案.md
+        ▼
+用户说"这个 AI 软件开发实战项目适合立项吗"
+        │
+        ▼
+  course-practice-project-evaluator Skill
+  ├── 课程目标与学员适配
+  ├── 可行性与 AI 软件开发真实性
+  ├── 课程能力证据与 Demo 层级
+  └── 立项结论与项目修订建议
+        │
+        │  产出 实操项目立项评估.md
+        ▼
+  course-design Skill（继续）
   ├── Phase 03 开发（大纲→手册→案例→测评→课件）
   ├── Phase 04 实施（前置测评→随堂验证）
   └── Phase 05 评估（柯氏→痛点复盘→迭代计划）
         │
-        │  产出 01~05 文件
+        │  产出 03-教学材料包/、04~05 阶段文件
+        ▼
+用户说"帮我提升每节课的讲授体验"
+        │
+        ▼
+  course-polish Skill
+  ├── 叙事弧润色
+  ├── 讲师话术润色
+  ├── 节奏与互动设计
+  └── 临场应变标注
+        │
+        │  产出润色版讲师手册/课件备注
         ▼
 用户说"审一下这个课程的质量"
         │
@@ -74,12 +121,14 @@
 
 ### 协作机制
 
-三个 Skill 不需要互相导入或引用内部逻辑。协作完全依赖**文件命名约定**：
+五个 Skill 不需要互相导入或引用内部逻辑。协作完全依赖**文件命名约定**：
 
 | 文件 | 由谁产出 | 被谁消费 |
 |:---|:---|:---|
 | `00-培训需求spec.md` | course-discovery | course-design（Phase 01 前置输入） |
 | `01-需求定位报告.md` → `05-评估报告.md` | course-design | course-review（扫描评审） |
+| `实操项目立项评估.md` | course-practice-project-evaluator | course-design（决定是否进入材料开发） |
+| 润色版讲师手册/课件备注 | course-polish | course-review 或课程交付者 |
 | 评审报告 | course-review | 交付物持有者 |
 
 任意 Skill 产生的输出文件均可被其他 Skill 消费。
@@ -136,11 +185,26 @@ skills/
 │       ├── common-tools.md        布卢姆动词手册 + 敏捷验证 + 质量清单
 │       └── pm-ai-adaption.md      PM+AI 课程适配规则
 │
-└── course-review/                  项目评审
+├── course-polish/                  课时话术与体验润色
+│   ├── SKILL.md
+│   ├── agents/openai.yaml
+│   └── references/polish-methodology.md
+│
+├── course-practice-project-evaluator/  实战项目立项评估
+│   ├── SKILL.md
+│   └── agents/openai.yaml
+│
+├── course-review/                  项目评审
     ├── SKILL.md                   工作流（五维评审模型）
     ├── agents/openai.yaml
     └── references/
         └── review-methodology.md   评审详细检查项
+
+├── microcourse-planner/            微课补充规划
+├── microcourse-designer/           微课单元设计
+├── microcourse-scriptwriter/       微课脚本与分镜
+├── microcourse-producer/           微课资源制作
+└── microcourse-reviewer/           微课质量评审
 ```
 
 ---
@@ -153,6 +217,8 @@ skills/
 |:---|:---|
 | "帮我探索一下培训方向" | → course-discovery |
 | "开发一门课程，主题是 XXX，面向 XXX" | → course-design |
+| "这个 AI 软件开发实战项目适合立项吗" | → course-practice-project-evaluator |
+| "帮我润色这节课的讲师话术和互动" | → course-polish |
 | "审阅这个课程项目的质量" | → course-review |
 | "我已有需求分析报告，从设计阶段开始" | → course-design（中间切入） |
 
@@ -165,6 +231,44 @@ skills/
 - **标准化技能培训**：无需过度使用体验设计层，但方法论框架同样适用
 
 ---
+
+---
+
+## 微课补充五 Skill 体系
+
+微课系列面向面授/直播主课程的可选补充，不是主课程开发的强制阶段。它按“规划 → 设计 → 脚本 → 制作 → 评审”协作：
+
+| Skill | 做什么 | 产出物 |
+|---|---|---|
+| `microcourse-planner` | 从课程大纲、教学材料和反馈中识别微课机会 | `00-微课补充地图.md` |
+| `microcourse-designer` | 将候选设计成单目标、可互动、可验证的微课 | `01-微课单元设计/` |
+| `microcourse-scriptwriter` | 编写口播稿、分镜、录屏步骤和字幕稿 | `02-微课脚本与分镜/` |
+| `microcourse-producer` | 组织课件、媒体、字幕、练习和交付资源包 | `03-微课交付包/` |
+| `microcourse-reviewer` | 检查互补性、教学对齐、体验和交付风险 | `05-微课评审报告.md` |
+
+推荐在课程项目中创建可选目录：
+
+```text
+06-微课补充包/
+├── 00-微课补充地图.md
+├── 01-微课单元设计/
+├── 02-微课脚本与分镜/
+├── 03-微课交付包/
+├── 04-微课练习与测验/
+└── 05-微课评审报告.md
+```
+
+使用方式：
+
+| 你说 | Codex 加载 |
+|---|---|
+| “从这门课规划配套微课” | → `microcourse-planner` |
+| “设计这节微课” | → `microcourse-designer` |
+| “写微课口播稿和分镜” | → `microcourse-scriptwriter` |
+| “整理微课课件、字幕和练习包” | → `microcourse-producer` |
+| “评审这组微课” | → `microcourse-reviewer` |
+
+微课 Skill 与主课通过 `MC-ID`、来源课时、来源目标和主课版本建立追踪关系，主课仍由 `course-*` 系列负责。
 
 ## 课程项目库
 
@@ -203,3 +307,13 @@ ln -s $(pwd)/course-review ~/.codex/skills/course-review
 ## 许可
 
 MIT
+
+---
+
+## 写作系列 Skill 体系
+
+写作系列 Skill 已拆为 7 个可独立调用的环节：
+
+`writing-style-guide → writing-content-analyzer → writing-outline-generator → writing-writer → writing-proofreader → writing-article-illustrator → writing-platform-layout`
+
+完整架构、产物契约、平台扩展和分阶段落地方式见 [`writing-series-plan.md`](writing-series-plan.md)。

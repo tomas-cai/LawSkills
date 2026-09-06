@@ -6,9 +6,9 @@ AI Bootstrap — Framework Component Gate（框架组件门禁注册表）
 
 职责分层：
 - DEPRECATED_COMPONENTS   → validate.py 扫描生成项目源码，拦截已废弃组件名的使用
-- FRAMEWORK_CONSTRAINTS   → generate.py 将约束渲染进 DESIGN.md「框架约束」，作为治理记账；
+- FRAMEWORK_CONSTRAINTS   → generate.py 将约束渲染进 ARCHITECTURE.md「框架约束」，作为治理记账；
                             official_demo_url / official_docs_url 渲染进 README「与官方 DEMO 对齐」
-                            清单与 docs/00-research/design-token-spec.md，
+                            清单与 design-system/<product>/TOKENS.md，
                             保证初始化始终以所选 UI 栈的官方 starter / demo / template 为基准。
 
 新 UI 栈入库时：先查官方 starter / quickstart / template / theming 文档，
@@ -24,7 +24,7 @@ DEPRECATED_COMPONENTS: dict[str, str] = {
     "UFormGroup": "UFormField",
 }
 
-# 渲染进 DESIGN.md「框架约束」的说明（按技术栈生效）。
+# 渲染进 ARCHITECTURE.md「框架约束」的说明（按技术栈生效）。
 # 每个条目必须登记 official_demo_url（官方 demo / starter / template 站点）与
 # official_docs_url（官方安装 / 主题文档），缺失时对齐清单会标记「待登记」。
 FRAMEWORK_CONSTRAINTS: list[dict] = [
@@ -171,7 +171,7 @@ def official_references_for_ui_library(ui_library: str | None) -> list[dict]:
 
 
 def render_constraints_markdown(constraints: list[dict]) -> str:
-    """将约束列表渲染为 DESIGN.md 用的 Markdown 片段。"""
+    """将约束列表渲染为 ARCHITECTURE.md 用的 Markdown 片段。"""
     if not constraints:
         return "> 当前技术栈无额外框架约束；涉及 UI 库升级或组件更名时，先查官方迁移指南。"
     lines: list[str] = []
@@ -198,7 +198,7 @@ def render_official_demo_checklist(
     starter_dirs: list[str] | None = None,
     starter_missing: list[str] | None = None,
 ) -> str:
-    """渲染「与官方 DEMO 对齐」验收清单（README.md 与 design-token-spec.md 共用）。
+    """渲染「与官方 DEMO 对齐」验收清单（README.md、ARCHITECTURE.md 与 TOKENS.md 共用）。
 
     参数来自生成中的 Blueprint：
     - official_paradigm：设计系统声明的官方安装范式摘要（缺失时标记为未对齐项）
@@ -234,13 +234,13 @@ def render_official_demo_checklist(
 
     lines.append("| 官方 demo/starter 已登记 | ✅ | 见上表链接（`framework_gate.py` 注册表） |")
     lines.append(
-        "| 官方安装范式已写入 DESIGN.md | "
+        "| 官方安装范式已写入 ARCHITECTURE.md | "
         + ("✅" if paradigm_ok else "⚠️")
         + " | "
         + ("第 2 节「UI 库官方范式」" if paradigm_ok else "缺失 `official_paradigm`，接入前必须先补齐官方 quickstart 范式")
         + " |"
     )
-    theme_note = "见 design-token-spec 第 3 节「技术栈主题入口」"
+    theme_note = "见 TOKENS.md 第 3 节「技术栈主题入口」"
     if theme_ok and theme_entry.get("global_tokens"):
         theme_note = f"全局令牌入口 `{theme_entry.get('global_tokens')}`"
     lines.append(

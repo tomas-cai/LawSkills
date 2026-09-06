@@ -2,7 +2,7 @@
 """
 AI Bootstrap — Governance File Generator v1.3
 
-Generates governance files (AGENTS.md, PROJECT_PROFILE.md, DESIGN.md, MEMORY.md, ADR, etc.)
+Generates governance files (AGENTS.md, PROJECT_PROFILE.md, ARCHITECTURE.md, MEMORY.md, ADR, etc.)
 based on a Blueprint definition and user input.
 
 Usage:
@@ -28,19 +28,20 @@ from framework_gate import (
     render_official_demo_checklist,
 )
 from layout import (
+    ARCHITECTURE_PATH,
     ADR_DIR,
     ADR_INDEX_PATH,
     BACKLOG_PATH,
     CURRENT_TASKS_PATH,
     DECISION_INDEX_PATH,
-    DESIGN_PATH,
-    DESIGN_TOKEN_SPEC_PATH,
+    DESIGN_TOKEN_DECISION_PATH,
     INITIAL_ADR_PATH,
     MANIFEST_PATH,
     MEMORY_PATH,
     PHASE_READMES,
     PROJECT_PROFILE_PATH,
     REVIEW_INDEX_PATH,
+    resolve_design_token_path,
 )
 
 
@@ -61,7 +62,7 @@ STARTER_TEXT_EXTENSIONS = {
 }
 STARTER_TEXT_FILENAMES = {".env.example", ".gitignore"}
 
-BOOTSTRAP_VERSION = "1.13.1"
+BOOTSTRAP_VERSION = "1.14.0"
 
 # Agent platform configurations
 AGENT_PLATFORMS = {
@@ -431,7 +432,7 @@ def _environment_baseline(blueprint: dict) -> str:
 
 
 def _framework_constraints_markdown(stack: dict) -> str:
-    """按 Blueprint 声明的 UI 库渲染 DESIGN.md「框架约束」段落。"""
+    """按 Blueprint 声明的 UI 库渲染 ARCHITECTURE.md「框架约束」段落。"""
     frontend = stack.get("frontend", {}) if isinstance(stack, dict) else {}
     ui_library = frontend.get("ui_library", "") if isinstance(frontend, dict) else ""
     constraints = constraints_for_ui_library(ui_library)
@@ -439,7 +440,7 @@ def _framework_constraints_markdown(stack: dict) -> str:
 
 
 def _official_demo_alignment(blueprint: dict) -> str:
-    """渲染「与官方 DEMO 对齐」验收清单（README.md 与 design-token-spec.md 共用）。"""
+    """渲染「与官方 DEMO 对齐」验收清单（README.md、ARCHITECTURE.md 与 TOKENS.md 共用）。"""
     stack = blueprint.get("stack", {}) if isinstance(blueprint, dict) else {}
     frontend = stack.get("frontend", {}) if isinstance(stack, dict) else {}
     design = blueprint.get("design_system", {}) if isinstance(blueprint, dict) else {}
@@ -530,9 +531,9 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
         component_baseline = [str(component_baseline)]
 
     lines = [
-        "# Design Token Spec",
+        "# TOKENS.md — Product Design Tokens",
         "",
-        "> 这是 Bootstrap 确立的产品设计基线。UI 库官方 starter / quickstart 范式是实现方式，语义令牌是设计决策的唯一来源；UI 库默认主题可以作为起点，但不得直接作为产品最终视觉系统。实现前需核对当前安装版本的官方主题 API。",
+        f"> 这是 Bootstrap 确立的产品设计基线，正式路径为 `{variables.get('DESIGN_TOKEN_PATH', 'design-system/<product>/TOKENS.md')}`。它属于产品设计系统资产，不属于 `docs/00-research/`。UI 库官方 starter / quickstart 范式是实现方式，语义令牌是设计决策的唯一来源；UI 库默认主题可以作为起点，但不得直接作为产品最终视觉系统。实现前需核对当前安装版本的官方主题 API。",
         "",
         "## 1. 选型上下文",
         "",
@@ -648,6 +649,41 @@ def _design_token_spec(blueprint: dict, variables: dict) -> str:
     ])
     lines.extend(_official_demo_alignment(blueprint).splitlines())
     return "\n".join(lines)
+
+
+def _design_token_decision(blueprint: dict, variables: dict) -> str:
+    """Build the research record for the design-system token decision."""
+    stack = blueprint.get("stack", {}) if isinstance(blueprint, dict) else {}
+    frontend = stack.get("frontend", {}) if isinstance(stack, dict) else {}
+    design = blueprint.get("design_system", {}) if isinstance(blueprint, dict) else {}
+    framework = frontend.get("framework", "none")
+    ui_library = frontend.get("ui_library", design.get("ui_library", "none"))
+    if framework in (None, "", "none"):
+        conclusion = "本 Blueprint 不包含前端界面，当前不建立产品设计令牌；未来增加前端时重新评估。"
+    else:
+        conclusion = (
+            f"当前产品设计令牌落在 `{variables.get('DESIGN_TOKEN_PATH')}`，因为令牌属于可执行的设计系统资产；"
+            "本目录只记录选型原因、调研证据和迁移说明，不复制令牌事实。"
+        )
+    return "\n".join([
+        "# Design Token Decision",
+        "",
+        "> Research 记录设计令牌方案的原因；正式令牌规范必须位于 `design-system/<product>/TOKENS.md`。",
+        "",
+        "## 决策",
+        "",
+        f"- **项目**：{variables.get('PROJECT_NAME', '')}",
+        f"- **前端框架**：{framework}",
+        f"- **UI 库**：{ui_library}",
+        f"- **正式令牌路径**：`{variables.get('DESIGN_TOKEN_PATH', '不适用')}`",
+        f"- **结论**：{conclusion}",
+        "",
+        "## 约束",
+        "",
+        "- `docs/00-research/` 只记录调研、原因、对比和迁移决策。",
+        "- 设计系统资产、语义令牌和主题实现入口由正式设计系统目录维护。",
+        "- 旧项目中的 `docs/00-research/design-token-spec.md` 只能作为兼容入口，不能继续作为事实源。",
+    ])
 
 
 def _project_layout_table(blueprint: dict) -> str:
@@ -767,6 +803,15 @@ def build_variables(args, blueprint: dict) -> dict:
         database_version = database.get("version", "")
     architecture_style = blueprint.get("architecture", {}).get("style", "layered")
     primary_language = _primary_language(stack)
+    project_slug = _slugify(args.name or project_dir.name)
+    frontend_present = frontend_stack.get("framework") not in (None, "", "none")
+    design_token_path = resolve_design_token_path(project_dir, blueprint, project_slug) if frontend_present else None
+    design_token_path_value = str(design_token_path) if design_token_path else "not-applicable"
+    design_token_reference = (
+        f"[`{design_token_path_value}`]({design_token_path_value})"
+        if design_token_path
+        else "不适用（此 Blueprint 不包含前端）"
+    )
 
     description = (args.description or "").strip() or (blueprint.get("description") or "").strip()
     if not description:
@@ -857,6 +902,9 @@ def build_variables(args, blueprint: dict) -> dict:
         "MONOREPO_TOOL": stack.get("monorepo", "none"),
         "PROJECT_LAYOUT_TABLE": _project_layout_table(blueprint),
         "PROJECT_LAYOUT_CONVENTIONS": _project_layout_conventions(blueprint),
+        "ARCHITECTURE_PATH": str(ARCHITECTURE_PATH),
+        "DESIGN_TOKEN_PATH": design_token_path_value,
+        "DESIGN_TOKEN_REFERENCE": design_token_reference,
         "PROJECT_INSTALL_COMMAND": blueprint.get("commands", {}).get("install", "pnpm install"),
         "PROJECT_DEV_COMMAND": blueprint.get("commands", {}).get("dev", "pnpm dev"),
         "PROJECT_TEST_COMMAND": blueprint.get("commands", {}).get("test", "pnpm test"),
@@ -1156,6 +1204,9 @@ def generate_manifest(
                 "agents_configured": variables["AGENT_COUNT"],
                 "adr_initialized": True,
                 "context_router": "standard",
+                "architecture": str(ARCHITECTURE_PATH),
+                "design_token_decision": str(DESIGN_TOKEN_DECISION_PATH),
+                "design_tokens": variables.get("DESIGN_TOKEN_PATH", "not-applicable"),
             },
             "validation": {
                 "status": "pending",
@@ -1245,16 +1296,26 @@ def generate(args) -> list:
         if gen:
             generated_files.append(str(gen))
 
-    # 3. Project DNA and design documents live under docs/.
+    # 3. Project DNA, architecture constraints, and design-system assets.
     gen = generate_file("PROJECT_PROFILE.md", out / PROJECT_PROFILE_PATH, variables, args.dry_run, force)
     if gen:
         generated_files.append(str(gen))
-    gen = generate_file("DESIGN.md", out / DESIGN_PATH, variables, args.dry_run, force)
+    gen = generate_file("ARCHITECTURE.md", out / ARCHITECTURE_PATH, variables, args.dry_run, force)
     if gen:
         generated_files.append(str(gen))
+    frontend = blueprint.get("stack", {}).get("frontend", {}) if isinstance(blueprint.get("stack", {}), dict) else {}
+    if frontend.get("framework") not in (None, "", "none"):
+        gen = generate_content_file(
+            out / Path(variables["DESIGN_TOKEN_PATH"]),
+            _design_token_spec(blueprint, variables),
+            args.dry_run,
+            force,
+        )
+        if gen:
+            generated_files.append(str(gen))
     gen = generate_content_file(
-        out / DESIGN_TOKEN_SPEC_PATH,
-        _design_token_spec(blueprint, variables),
+        out / DESIGN_TOKEN_DECISION_PATH,
+        _design_token_decision(blueprint, variables),
         args.dry_run,
         force,
     )

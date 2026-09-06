@@ -23,7 +23,8 @@ project/
 ├── .gitignore                      # New projects only
 ├── docs/
 │   ├── PROJECT_PROFILE.md
-│   ├── DESIGN.md
+│   ├── ARCHITECTURE.md
+│   ├── design-system/<product>/TOKENS.md  # Frontend projects only
 │   ├── ai/MEMORY.md
 │   ├── 00-research/
 │   ├── 01-requirements/
@@ -49,7 +50,8 @@ The root remains an engineering entry point. Human- and Agent-authored SDD artif
 |---|---|---|
 | AGENTS.md | Agent roles, write constraints, context-reading order | Update when collaboration governance changes |
 | docs/PROJECT_PROFILE.md | Project DNA: stack, architecture and agents | Change deliberately; architecture changes require an ADR |
-| docs/DESIGN.md | Architecture boundaries and implementation constraints | Keep aligned with the active Blueprint and codebase |
+| docs/ARCHITECTURE.md | Architecture boundaries and implementation constraints | Keep aligned with the active Blueprint and codebase |
+| design-system/<product>/TOKENS.md | Product UI design tokens and theme entry | Keep aligned with the running frontend implementation |
 | docs/ai/MEMORY.md | Current collaboration state, blockers and handoffs | Update after meaningful Agent work |
 | docs/00–05 | Research through verification evidence | Add artifacts at the corresponding SDD stage |
 | docs/06-decisions/adr/ | Architecture Decision Records | Use for durable structural choices |
@@ -92,7 +94,7 @@ The generated profile must preserve the Blueprint's frontend, backend and databa
 
 ### 5.1 Directory layout contract
 
-Every Blueprint declares `layout` with `source_root`, `key_dirs` and `conventions`. The declared layout must follow the corresponding stack's official conventions rather than inventing a universal `src/` structure. `generate.py` renders the layout into `README.md`, `DESIGN.md` and `PROJECT_PROFILE.md`; validation checks that the documented layout is consistent with the Blueprint, not that every source directory already exists.
+Every Blueprint declares `layout` with `source_root`, `key_dirs` and `conventions`. The declared layout must follow the corresponding stack's official conventions rather than inventing a universal `src/` structure. `generate.py` renders the layout into `README.md`, `ARCHITECTURE.md` and `PROJECT_PROFILE.md`; validation checks that the documented layout is consistent with the Blueprint, not that every source directory already exists.
 
 ### 5.2 Recommended AI skills
 
@@ -108,7 +110,7 @@ The --agents argument defines the complete participating Agent set. The same set
 The context router is:
 
 ~~~text
-AGENTS.md → docs/PROJECT_PROFILE.md → docs/DESIGN.md →
+AGENTS.md → docs/PROJECT_PROFILE.md → docs/ARCHITECTURE.md → design-system/<product>/TOKENS.md →
 docs/ai/MEMORY.md → docs/06-decisions/adr/INDEX.md →
 docs/03-plans/current.md
 ~~~

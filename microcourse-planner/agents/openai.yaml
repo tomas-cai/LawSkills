@@ -1,0 +1,4 @@
+interface:
+  display_name: "微课规划"
+  short_description: "从主课大纲与学习反馈规划可执行的互补微课候选和开发优先级"
+  default_prompt: "使用 $microcourse-planner 基于这门面授或直播课程的大纲规划配套微课。"

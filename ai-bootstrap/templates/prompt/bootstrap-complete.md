@@ -7,7 +7,7 @@
 - 主要平台：{{PLATFORM_NAME}}
 - 包管理器：{{PACKAGE_MANAGER}}
 
-请先阅读 `AGENTS.md`、`docs/PROJECT_PROFILE.md` 和 `docs/DESIGN.md`，再开始修改项目代码。
+请先阅读 `AGENTS.md`、`docs/PROJECT_PROFILE.md` 和 `docs/ARCHITECTURE.md`；前端项目再阅读 {{DESIGN_TOKEN_REFERENCE}}，再开始修改项目代码。
 
 ## 运行与冒烟验证（必须完成）
 
@@ -23,5 +23,5 @@
 ## 下一步建议
 
 1. 阅读 `AGENTS.md` 了解 Agent 分工与权限。
-2. 从 `docs/00-research/stack-decision.md` 与 `design-token-spec.md` 开始设计迭代。
+2. 从 `docs/00-research/stack-decision.md`、`docs/00-research/design-token-decision.md` 与 {{DESIGN_TOKEN_REFERENCE}} 开始设计迭代（后端项目跳过令牌文件）。
 3. 用 Codex 打开项目后，基于 mock-first 基线开发真实 API 与页面。

@@ -1,0 +1,4 @@
+interface:
+  display_name: "微课制作"
+  short_description: "组织微课课件、字幕、练习与可检查的媒体交付资源包文件"
+  default_prompt: "使用 $microcourse-producer 将微课脚本整理为可制作、可交付的资源包。"

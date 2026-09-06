@@ -1,4 +1,0 @@
-interface:
-  display_name: "Practice Project Evaluator"
-  short_description: "Evaluate AI PM practice project feasibility"
-  default_prompt: "Use $practice-project-evaluator to evaluate whether this AI PM practice project is feasible and portfolio-worthy."

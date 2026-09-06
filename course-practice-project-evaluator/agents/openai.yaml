@@ -1,0 +1,4 @@
+interface:
+  display_name: "课程实践项目评估"
+  short_description: "评估 AI 软件开发课程实践项目是否值得立项并可交付"
+  default_prompt: "使用 $course-practice-project-evaluator 评估这个 AI 软件开发课程实践项目是否适合立项。"

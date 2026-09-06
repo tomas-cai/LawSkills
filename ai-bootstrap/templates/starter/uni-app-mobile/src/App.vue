@@ -9,7 +9,7 @@ onLaunch(() => {
 
 <style lang="scss">
 /* ── 全局设计令牌：Vant 4 CSS 变量覆盖（--van-*）──
- * 语义色与 docs/00-research/design-token-spec.md 一致；
+ * 语义色与 design-system/{{PROJECT_SLUG}}/TOKENS.md 一致；
  * SCSS 变量定义在 src/uni.scss（编译期注入），这里在 :root 定义 Vant 运行时变量（H5）；
  * 组件级覆盖用 <van-config-provider :theme-vars>。
  */

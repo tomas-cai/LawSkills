@@ -16,7 +16,7 @@
 | 生产数据库 | {{DATABASE_PRODUCTION}} |
 | 部署 | {{DEPLOYMENT_PLATFORM}} |
 
-设计令牌与主题入口见 [`docs/00-research/design-token-spec.md`](docs/00-research/design-token-spec.md)。
+设计令牌与主题入口见 {{DESIGN_TOKEN_REFERENCE}}；设计令牌决策记录见 [`docs/00-research/design-token-decision.md`](docs/00-research/design-token-decision.md)。
 
 ## 环境要求
 
@@ -53,7 +53,7 @@
 └── 应用源码                # 按技术栈官方约定组织
 ```
 
-应用源码目录遵循对应技术栈的官方约定；完整目录职责表与约定以 [`docs/DESIGN.md`](docs/DESIGN.md)「项目目录契约」为唯一来源。
+应用源码目录遵循对应技术栈的官方约定；完整目录职责表与约定以 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)「项目目录契约」为唯一来源。
 
 ## 治理
 

@@ -1,6 +1,6 @@
 # Design Token Guide
 
-本参考文件用于 Blueprint 选择完成后生成和审查 `docs/00-research/design-token-spec.md`。它把“框架能运行”与“产品有设计系统”分开处理。
+本参考文件用于 Blueprint 选择完成后生成和审查 `design-system/<product>/TOKENS.md`。它把“框架能运行”与“产品有设计系统”分开处理。`docs/00-research/` 只记录 `design-token-decision.md`，不保存正式令牌。
 
 ## 必须记录的令牌层
 
@@ -34,7 +34,7 @@
 - 主题入口（`app.config.ts`、`ConfigProvider`、CSS variables、`uni.scss` 等）。
 - 组件基线和平台特有验收标准（如移动端触控目标、小程序分包、App 安全区）。
 
-推荐在 `docs/00-research/design-token-spec.md` 中先写共享语义层，再按应用写实现表：
+推荐在 `design-system/<product>/TOKENS.md` 中先写共享语义层，再按应用写实现表：
 
 ```text
 | 应用 | 框架 | UI 库 | 样式方案 | 主题入口 | 组件基线 |

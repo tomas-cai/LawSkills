@@ -147,7 +147,7 @@ class BootstrapPipelineTests(unittest.TestCase):
             self.assertNotIn("{{", generated_text)
             self.assertNotIn("{%", generated_text)
             self.assertIn('type: "postgres"', (Path(project) / "docs" / "PROJECT_PROFILE.md").read_text())
-            token_spec = Path(project) / "docs" / "00-research" / "design-token-spec.md"
+            token_spec = next((Path(project) / "design-system").glob("*/TOKENS.md"))
             self.assertTrue(token_spec.exists())
             token_text = token_spec.read_text(encoding="utf-8")
             self.assertIn("shadcn", token_text)
@@ -156,18 +156,18 @@ class BootstrapPipelineTests(unittest.TestCase):
             self.assertIn("shadcn/ui v3", token_text)
             readme_text = (Path(project) / "README.md").read_text(encoding="utf-8")
             self.assertIn("应用源码目录", readme_text)
-            self.assertIn("docs/DESIGN.md", readme_text)  # 目录契约单一来源：README 只引用 DESIGN
+            self.assertIn("docs/ARCHITECTURE.md", readme_text)  # 目录契约单一来源：README 只引用 ARCHITECTURE
             self.assertIn("pnpm install", readme_text)
             self.assertIn("pnpm dev", readme_text)
             self.assertIn("pnpm test", readme_text)
-            design_text = (Path(project) / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+            design_text = (Path(project) / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8")
             self.assertIn("项目目录契约", design_text)
             self.assertIn("apps/web", design_text)
             self.assertIn("apps/api", design_text)
             self.assertTrue((Path(project) / ".ai-bootstrap" / "bootstrap-manifest.yaml").exists())
             for legacy_path in (
                 "ADR", "TASKS", "DECISIONS", "REVIEWS", "PROJECT_PROFILE.md",
-                "DESIGN.md", "MEMORY.md", "bootstrap-manifest.yaml",
+                "ARCHITECTURE.md", "MEMORY.md", "bootstrap-manifest.yaml",
             ):
                 self.assertFalse((Path(project) / legacy_path).exists(), legacy_path)
 
@@ -431,7 +431,7 @@ body {
             self.assertIn(library, registered, f"FRAMEWORK_CONSTRAINTS 缺少 {library} 约束")
 
     def test_nuxt_starter_renders_framework_constraints_and_passes_gate(self):
-        """Nuxt 生成项目：DESIGN.md 记录 UFormField 约束；源码不含 UFormGroup；gate 校验通过。"""
+        """Nuxt 生成项目：ARCHITECTURE.md 记录 UFormField 约束；源码不含 UFormGroup；gate 校验通过。"""
         with tempfile.TemporaryDirectory(prefix="ai-bootstrap-nuxt-gate-") as project:
             result = self.run_script(
                 "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
@@ -439,7 +439,7 @@ body {
             )
             self.assertEqual(result.returncode, 0, result.stderr)
 
-            design = (Path(project) / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+            design = (Path(project) / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8")
             self.assertIn("框架约束", design)
             self.assertIn("UFormField", design)
             self.assertIn("UFormGroup", design)  # 约束说明里应点名废弃组件
@@ -1124,7 +1124,7 @@ body {
                 )
 
     def test_official_demo_checklist_rendered_in_readme_and_token_spec(self):
-        """nuxt-ai-fullstack 生成：README / DESIGN / design-token-spec 都带官方 DEMO 对齐内容。"""
+        """nuxt-ai-fullstack 生成：README / ARCHITECTURE / TOKENS 都带官方 DEMO 对齐内容。"""
         with tempfile.TemporaryDirectory(prefix="ai-bootstrap-official-demo-") as project:
             result = self.run_script(
                 "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
@@ -1139,12 +1139,12 @@ body {
             self.assertIn("ui-stack-conformance", readme)
             self.assertIn("starter 目录已生成", readme)
 
-            spec = (Path(project) / "docs" / "00-research" / "design-token-spec.md").read_text(encoding="utf-8")
+            spec = next((Path(project) / "design-system").glob("*/TOKENS.md")).read_text(encoding="utf-8")
             self.assertIn("与官方 DEMO 对齐清单", spec)
             self.assertIn("官方 DEMO / 模板", spec)
             self.assertIn("github.com/nuxt-ui-templates/dashboard", spec)
 
-            design = (Path(project) / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+            design = (Path(project) / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8")
             self.assertIn("官方 DEMO / 模板", design)
             self.assertIn("github.com/nuxt-ui-templates/dashboard", design)
 
@@ -1282,7 +1282,7 @@ body {
             self.assertIn("My custom intro", readme)
 
     def test_layout_contract_single_source_in_design(self):
-        """目录契约单一来源：职责表只在 DESIGN.md，README/PROFILE 引用而不复制。"""
+        """目录契约单一来源：职责表只在 ARCHITECTURE.md，README/PROFILE 引用而不复制。"""
         with tempfile.TemporaryDirectory(prefix="ai-bootstrap-layout-src-") as project:
             result = self.run_script(
                 "generate.py", "--dir", project, "--blueprint", "nuxt-ai-fullstack",
@@ -1291,11 +1291,11 @@ body {
             self.assertEqual(result.returncode, 0, result.stderr)
             readme = (Path(project) / "README.md").read_text(encoding="utf-8")
             profile = (Path(project) / "docs" / "PROJECT_PROFILE.md").read_text(encoding="utf-8")
-            design = (Path(project) / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+            design = (Path(project) / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8")
             self.assertNotIn("| 目录 | 职责 |", readme)
             self.assertNotIn("| 目录 | 职责 |", profile)
             self.assertIn("| 目录 | 职责 |", design)
-            self.assertIn("docs/DESIGN.md", readme)
+            self.assertIn("docs/ARCHITECTURE.md", readme)
             self.assertIn("唯一来源", profile)
 
     def test_manifest_records_starter_landing_status(self):
@@ -1517,11 +1517,11 @@ body {
             self.assertIn("element-plus.org", readme)
             self.assertIn("ui-stack-conformance", readme)
 
-            design = (Path(project) / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+            design = (Path(project) / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8")
             self.assertIn("Element Plus 2.x", design)
             self.assertIn("官方 DEMO / 模板", design)
 
-            spec = (Path(project) / "docs" / "00-research" / "design-token-spec.md").read_text(encoding="utf-8")
+            spec = next((Path(project) / "design-system").glob("*/TOKENS.md")).read_text(encoding="utf-8")
             self.assertIn("--el-*", spec)
             self.assertIn("与官方 DEMO 对齐清单", spec)
 
@@ -1567,7 +1567,7 @@ body {
                         "--name", "MatchCV", "--agents", "codex",
                     )
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    for doc in ("AGENTS.md", "README.md", "docs/PROJECT_PROFILE.md", "docs/DESIGN.md"):
+                    for doc in ("AGENTS.md", "README.md", "docs/PROJECT_PROFILE.md", "docs/ARCHITECTURE.md"):
                         text = (Path(project) / doc).read_text(encoding="utf-8")
                         self.assertIn("JDK 17", text, f"{doc} missing JDK 17")
                         self.assertIn("Maven", text, f"{doc} missing Maven")

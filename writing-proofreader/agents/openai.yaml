@@ -1,0 +1,4 @@
+interface:
+  display_name: "写作润色质检"
+  short_description: "区分达标检查与语言润色并输出可追溯的修订稿与问题报告"
+  default_prompt: "使用 $writing-proofreader 检查这篇稿件并在不改变事实的前提下润色。"

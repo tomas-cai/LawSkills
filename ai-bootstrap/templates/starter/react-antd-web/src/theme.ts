@@ -1,6 +1,6 @@
 // @agent: codex
 // Ant Design v6 Design Token 入口：ConfigProvider theme={{ token, algorithm }}
-// 语义色与 docs/00-research/design-token-spec.md 一致（enterprise-console preset）；
+// 语义色与 design-system/{{PROJECT_SLUG}}/TOKENS.md 一致（enterprise-console preset）；
 // 不要散落 hex 或直接改 node_modules 样式；需要暗色时切换 theme.darkAlgorithm。
 import { theme } from 'antd'
 import type { ThemeConfig } from 'antd'

@@ -1,0 +1,4 @@
+interface:
+  display_name: "写作大纲生成"
+  short_description: "根据素材与目标生成可执行的文章结构大纲、标题与段落任务"
+  default_prompt: "使用 $writing-outline-generator 为这批素材生成文章大纲和标题备选。"

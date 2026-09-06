@@ -1,11 +1,11 @@
 ---
 name: ai-bootstrap
-version: "1.13.1"
+version: "1.14.0"
 description: >
   AI Native Engineering Bootstrap System.
   为 AI 建立长期、统一、可治理的软件工程上下文。
   当用户需要初始化新项目、为现有项目注入 AI 治理体系、选择技术栈组合 Blueprint、
-  生成治理文件（AGENTS.md / PROJECT_PROFILE.md / DESIGN.md / MEMORY.md / ADR）、
+  生成治理文件（AGENTS.md / PROJECT_PROFILE.md / ARCHITECTURE.md / MEMORY.md / ADR）、
   或在 AI Agent 开始工作前统一上下文时触发。
   也可在已部分初始化的项目基础上从中段执行（如已有项目检测 → 生成治理）。
   特别适配多 Agent 协作场景（Codex / Claude Code / Cursor / Trae / Windsurf / Gemini CLI）。
@@ -59,9 +59,9 @@ description: >
   - **shadcn/ui（React / Next.js + Tailwind v4）**: 按 shadcn/ui v3 官方安装范式（`v3.shadcn.com/docs/installation/vite` / `.../next` + `shadcn init/add`）初始化：组件是**源码拷贝进项目**（`pnpm dlx shadcn@latest init` 生成 `components.json` + `globals.css` 主题变量 `--primary` / `--radius` + `src/lib/utils.ts` `cn()`；`pnpm dlx shadcn@latest add <component>` 拷进 `src/components/ui/`），不是 npm 依赖、不走 `babel-plugin-import` 或运行时按需插件；全局 CSS 以 `@import "tailwindcss"` 起步（Vite 用 `@tailwindcss/vite`、Next.js 用 `@tailwindcss/postcss`，配 `@/*` 路径别名；RSC 交互组件标 `'use client'`）；主题色只改 CSS 变量，页面用 `bg-primary` / `text-muted` 等语义类名，不散落 hex。（`react-fastapi` 内置 `react-shadcn-web` Vite starter（`frontend/`）；`next-fullstack` 内置 `next-shadcn-web` Next.js App Router starter（`apps/web/`）；均直接生成可运行的登录 → 工作台 → 岗位 CRUD 瘦 DEMO）
   - **Naive UI 2.x（Vue3 轻量/桌面）**: 按 Naive UI 官方快速上手与主题定制范式初始化：**不需要导入任何 CSS**（组件独立导出、tree-shaking 友好，禁止 `import 'naive-ui/dist/index.css'` 之类全量样式）；主题入口是 `<n-config-provider :theme-overrides>`（JS 对象 `GlobalThemeOverrides`；暗色用 `darkTheme`）+ `locale={zhCN}` / `date-locale={dateZhCN}`（来自 naive-ui）；按需可配 `unplugin-vue-components` + `NaiveUiResolver` + `unplugin-auto-import`；主题令牌集中在 `src/theme.ts` 导出 `themeOverrides` 对象，页面不散落 hex。（`vue-django` Blueprint 已内置 `vue-naive-web` starter：`frontend/` 直接生成可运行的登录 → 工作台 → 岗位 CRUD 瘦 DEMO）
 - **官方范式优先（Official First）**: 接入任何新前端 UI 库/组件库时，**先查官方 starter / quickstart / template / theming 文档**，提取官方安装与主题入口范式 → 生成瘦 DEMO → 由 `validate.py` 的 `ui-stack-conformance` 门禁拦截反官方做法；禁止凭记忆或旧版经验初始化。已覆盖：Nuxt UI v4（管理后台按官方 dashboard 模板范式）、Vant 4、Element Plus 2.x、Ant Design v6、shadcn/ui v3、Naive UI 2.x。
-- **Java/Maven 后端 starter（spring-boot-server-standalone）**: react-springboot 补齐缺失的 Spring Boot 后端工程（此前只生成前端），并新增 `vue-springboot` Blueprint（Vue3 + Element Plus + Spring Boot，国内企业级主流组合）。后端按 Spring Initializr 官方范式生成（`spring-boot-starter-parent` + `src/main/java` 官方目录 + `spring-boot-maven-plugin`），默认 H2 内存库开箱即跑、生产切换 PostgreSQL；`scripts/build_smoke.py` 支持 Maven 目标（`mvn -q -DskipTests package`），真实构建验证「生成即能跑」。**环境基线同时写入生成的 AGENTS.md / PROJECT_PROFILE.md / DESIGN.md / README：Spring Boot 3.x 用 JDK 17 最稳 + 必须支持 Maven 3.9+（`mvn -f backend/pom.xml`），指导 AI Agent 安装/切换环境时参考。**
-- **环境与工具链基线（environment-baseline）**: `generate.py` 根据 Blueprint 栈把「环境与工具链基线」写入 AGENTS.md（置顶规则）、PROJECT_PROFILE.md、DESIGN.md 与 README——Spring Boot 3.x 固定 **JDK 17（最稳）+ Maven 3.9+**（pom.xml `java.version=17`，`mvn -f backend/pom.xml` 统一操作）；前端固定 Node.js 20+ LTS + pnpm。所有 Agent 在安装/切换环境、执行构建命令前必须核对（AGENTS.md 顶部）。
-- **官方 DEMO 对齐清单（official-demo-checklist）**: 每个 UI 栈在 `framework_gate.py` 注册 `official_demo_url` / `official_docs_url`；生成项目的 README.md 与 `docs/00-research/design-token-spec.md` 自动附「与官方 DEMO 对齐」验收清单（官方 demo/starter 链接、官方安装范式、主题令牌入口、starter 目录、`ui-stack-conformance` 门禁），持续核对初始化是否偏离官方推荐做法。新 UI 栈入库必须先在注册表登记官方链接。
+- **Java/Maven 后端 starter（spring-boot-server-standalone）**: react-springboot 补齐缺失的 Spring Boot 后端工程（此前只生成前端），并新增 `vue-springboot` Blueprint（Vue3 + Element Plus + Spring Boot，国内企业级主流组合）。后端按 Spring Initializr 官方范式生成（`spring-boot-starter-parent` + `src/main/java` 官方目录 + `spring-boot-maven-plugin`），默认 H2 内存库开箱即跑、生产切换 PostgreSQL；`scripts/build_smoke.py` 支持 Maven 目标（`mvn -q -DskipTests package`），真实构建验证「生成即能跑」。**环境基线同时写入生成的 AGENTS.md / PROJECT_PROFILE.md / ARCHITECTURE.md / README：Spring Boot 3.x 用 JDK 17 最稳 + 必须支持 Maven 3.9+（`mvn -f backend/pom.xml`），指导 AI Agent 安装/切换环境时参考。**
+- **环境与工具链基线（environment-baseline）**: `generate.py` 根据 Blueprint 栈把「环境与工具链基线」写入 AGENTS.md（置顶规则）、PROJECT_PROFILE.md、ARCHITECTURE.md 与 README——Spring Boot 3.x 固定 **JDK 17（最稳）+ Maven 3.9+**（pom.xml `java.version=17`，`mvn -f backend/pom.xml` 统一操作）；前端固定 Node.js 20+ LTS + pnpm。所有 Agent 在安装/切换环境、执行构建命令前必须核对（AGENTS.md 顶部）。
+- **官方 DEMO 对齐清单（official-demo-checklist）**: 每个 UI 栈在 `framework_gate.py` 注册 `official_demo_url` / `official_docs_url`；生成项目的 README.md、`docs/ARCHITECTURE.md` 与正式 `design-system/<product>/TOKENS.md` 自动附「与官方 DEMO 对齐」验收清单（官方 demo/starter 链接、官方安装范式、主题令牌入口、starter 目录、`ui-stack-conformance` 门禁），持续核对初始化是否偏离官方推荐做法。新 UI 栈入库必须先在注册表登记官方链接。
 - 升级到真实 API 的路径见 `references/basic-feature-baseline.md`。
 
 已在 `nuxt-ai-fullstack` Blueprint 中内置 `multi-app-monorepo`、`jwt + author`、`project-create-edit` 与 `demo-visual-baseline` 基线。
@@ -94,7 +94,7 @@ description: >
 - PC 与移动端默认是两个独立应用，不强制 PC + H5 共用一套前端；只有产品明确是轻量响应式页面时才允许合并。
 - 每个应用独立选择 UI 库和样式库；共享产品级语义令牌，但不共享实现入口。
 - 移动端首选 `uni-app-nitro`（uni-app + Vue3 + uni-ui + Nitro），一次开发覆盖 H5、小程序和 App；React 团队可选用 Taro + React + Ant Design Mobile。
-- Blueprint 的主 `design_system` 描述主应用；多应用项目在 `stack-decision.md` 和 `design-token-spec.md` 中按应用分别声明。
+- Blueprint 的主 `design_system` 描述主应用；多应用项目在 `stack-decision.md` 和 `design-system/<product>/TOKENS.md` 中按应用分别声明，Research 只记录令牌决策依据。
 
 ### 默认优先级
 
@@ -103,7 +103,7 @@ description: >
 
 ### 确认后的持久化要求
 
-生成成功后，必须写入 `docs/00-research/stack-decision.md` 和 `docs/00-research/design-token-spec.md`。前者记录选择来源、Blueprint、每个应用的完整组合、理由、代价和未来迁移触发条件；后者记录共享语义令牌，以及每个应用独立的主题入口、UI 库、样式库、组件基线和首屏验收标准。已有文件不得覆盖；变更应追加新决策或进入 ADR。
+生成成功后，必须写入 `docs/00-research/stack-decision.md` 与 `docs/00-research/design-token-decision.md`。前者记录技术选型，后者记录设计令牌选型原因、证据和迁移触发条件；前端项目再把正式共享语义令牌和各应用主题入口写入 `design-system/<product>/TOKENS.md`。`docs/00-research/` 不再保存正式设计令牌规范；旧 `design-token-spec.md` 只作为兼容入口。已有文件不得覆盖；变更应追加新决策或进入 ADR。
 
 ## 生命周期
 
@@ -180,7 +180,7 @@ Detect ──▶ Analyze ──▶ Resolve ──▶ Generate ──▶ Verify �
 | `scripts/smoke.py` | 运行时冒烟检查（启动后验证各应用端口可访问） | `python3 <skill-dir>/scripts/smoke.py --dir /path/to/project` |
 | `scripts/build_smoke.py` | 构建期冒烟（真实 `pnpm install` + 构建，验证 starter「生成即能跑」；`--plan` 只打印计划） | `python3 <skill-dir>/scripts/build_smoke.py --dir /path/to/project` |
 
-设计令牌规范由 `generate.py` 持久化为 `docs/00-research/design-token-spec.md`；通用规则和技术栈映射见 `references/design-token-guide.md`。
+架构与实现约束由 `generate.py` 持久化为 `docs/ARCHITECTURE.md`；前端设计令牌规范由 `generate.py` 持久化为 `design-system/<project-slug>/TOKENS.md`，设计令牌决策记录在 `docs/00-research/design-token-decision.md`；通用规则和技术栈映射见 `references/design-token-guide.md`。
 
 ### detect.py 参数
 
@@ -219,7 +219,7 @@ Detect ──▶ Analyze ──▶ Resolve ──▶ Generate ──▶ Verify �
 |------|------|------|
 | `templates/governance/AGENTS.md` | Agent 角色定义和权限 | 所有项目 |
 | `templates/governance/PROJECT_PROFILE.md` | 项目 DNA（唯一事实来源） | 所有项目 |
-| `templates/governance/DESIGN.md` | 设计文档 | 所有项目 |
+| `templates/governance/ARCHITECTURE.md` | 架构与实现约束 | 所有项目 |
 | `templates/governance/MEMORY.md` | AI 记忆文件 | 所有项目 |
 | `templates/governance/ADR-INDEX.md` | ADR 目录索引 | 所有项目 |
 | `templates/governance/ADR-TEMPLATE.md` | ADR 模板 | 所有项目 |
@@ -329,9 +329,9 @@ project/
 ├── .gitignore                        # Git 忽略规则（全新项目）
 ├── docs/
 │   ├── PROJECT_PROFILE.md            # 项目 DNA（唯一事实来源）
-│   ├── DESIGN.md                     # 设计文档 + 架构约束
+│   ├── ARCHITECTURE.md               # 架构与实现约束
 │   ├── ai/MEMORY.md                  # AI 记忆与协作状态
-│   ├── 00-research/                  # 调研 + stack-decision.md + design-token-spec.md
+│   ├── 00-research/                  # 调研 + stack-decision.md + design-token-decision.md
 │   ├── 01-requirements/              # 需求
 │   ├── 02-specs/                     # 规格
 │   ├── 03-plans/                     # 实施计划、current.md、backlog.md
@@ -346,13 +346,13 @@ project/
     └── bootstrap-manifest.yaml       # 机器可读清单
 ```
 
-`ADR` 是 Architecture Decision Record（架构决策记录）：它记录重要架构选择的背景、备选方案、最终决策和后果。只有影响系统结构、技术边界或长期演进的决策进入 ADR；一般的产品或实施取舍记录在 `docs/06-decisions/decisions/`。
+`ADR` 是 Architecture Decision Record（架构决策记录）：它记录重要架构选择的背景、备选方案、最终决策和后果。只有影响系统结构、技术边界或长期演进的决策进入 ADR；一般的产品或实施取舍记录在 `docs/06-decisions/decisions/`。UI 设计令牌属于 `design-system/` 设计系统资产；Research 只记录其决策依据。
 
 ## 目录结构处理原则
 
 - 顶层治理结构（`AGENTS.md`、`docs/`、`.ai-bootstrap/`）在所有 Blueprint 间保持统一。
 - 应用源码目录按 Blueprint 的 `layout` 声明，必须遵循对应技术栈的官方约定，不自行发明结构。
-- `generate.py` 会把 `layout` 渲染到 `README.md`、`DESIGN.md` 和 `PROJECT_PROFILE.md`，让 Agent 直接看到该栈的目录契约。
+- `generate.py` 会把 `layout` 渲染到 `README.md`、`ARCHITECTURE.md` 和 `PROJECT_PROFILE.md`，让 Agent 直接看到该栈的目录契约。
 - 新项目按官方约定生成骨架；现有项目不强制重构，`detect.py` 记录实际结构，AI 按现状工作。
 - 多应用项目每个 app 独立声明 `layout`，不共用一套源码结构。
 - Nitro standalone（≥2.13）路由放应用根级 `routes/` 与 `routes/api/`；`server/` 不再被自动扫描，存量项目按此迁移。
@@ -431,7 +431,7 @@ python3 <skill-dir>/scripts/generate.py \
 
 如果用户指定 `--dry-run`，先预览再确认。
 
-正式生成后，补写 `docs/00-research/stack-decision.md`，并把该文件纳入生成清单；同时生成 `docs/00-research/design-token-spec.md`。已有设计文件默认跳过，不能覆盖用户已有的设计决策。
+正式生成后，补写 `docs/00-research/stack-decision.md` 与 `docs/00-research/design-token-decision.md`，并把它们纳入生成清单；前端项目同时生成 `design-system/<project-slug>/TOKENS.md`。已有设计系统文件默认跳过，不能覆盖用户已有的设计决策。
 
 #### Step 5: 验证
 
@@ -495,13 +495,14 @@ Bootstrap 完成后，确保以下内容正确：
 
 - [ ] AGENTS.md 正确定义了所有 Agent 的角色和权限
 - [ ] docs/PROJECT_PROFILE.md 包含完整的项目 DNA
-- [ ] docs/DESIGN.md 包含架构设计和约束
+- [ ] docs/ARCHITECTURE.md 包含架构设计和实现约束
 - [ ] docs/ai/MEMORY.md 已初始化
 - [ ] docs/00-research 至 docs/06-decisions 阶段目录已创建
 - [ ] docs/00-research/stack-decision.md 记录了用户确认的完整技术组合
-- [ ] docs/00-research/design-token-spec.md 存在，并声明前端/UI 库的主题入口和语义令牌
-- [ ] 多应用项目：stack-decision.md 记录每个应用独立组合，design-token-spec.md 为每个应用声明独立 UI/样式库与主题入口
-- [ ] README.md、DESIGN.md 和 PROJECT_PROFILE.md 已按 Blueprint `layout` 声明应用源码目录，且符合技术栈官方约定
+- [ ] 前端项目的 `design-system/<product>/TOKENS.md` 存在，并声明前端/UI 库的主题入口和语义令牌
+- [ ] `docs/00-research/design-token-decision.md` 只记录设计令牌决策依据，不复制正式令牌
+- [ ] 多应用项目：stack-decision.md 记录每个应用独立组合，TOKENS.md 为每个应用声明独立 UI/样式库与主题入口
+- [ ] README.md、ARCHITECTURE.md 和 PROJECT_PROFILE.md 已按 Blueprint `layout` 声明应用源码目录，且符合技术栈官方约定
 - [ ] docs/06-decisions/adr/ 包含 ADR 索引和初始 ADR
 - [ ] docs/03-plans/ 包含 current.md
 - [ ] docs/04-reviews/ 包含 INDEX.md
