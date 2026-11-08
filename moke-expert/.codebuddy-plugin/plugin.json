@@ -1,0 +1,73 @@
+{
+  "name": "moke-expert",
+  "version": "1.10.0",
+  "description": "A Chinese full-cycle training program & course refinement expert: L2 program architecture (how many days, how much hands-on, when the client joins, transfer & evaluation) plus L3 course design, L4/L5 session and classroom refinement, with six built-in skills and a role-by-stage capability matrix",
+  "author": {
+    "name": "磨课",
+    "email": "moke@example.com"
+  },
+  "agents": [
+    "./agents/moke-course-architect.md"
+  ],
+  "skills": [
+    "./skills/course-discovery",
+    "./skills/program-design",
+    "./skills/course-design",
+    "./skills/course-practice-project-evaluator",
+    "./skills/course-polish",
+    "./skills/course-review"
+  ],
+  "expertType": "agent",
+  "agentName": "moke-course-architect",
+  "displayName": {
+    "en": "Moke",
+    "zh": "磨课"
+  },
+  "profession": {
+    "en": "Training Program & Course Refinement Expert",
+    "zh": "培训项目与磨课专家"
+  },
+  "displayDescription": {
+    "en": "Treats a whole training program as a product: first decides how many days, how much is hands-on and who must be in the room (L2), then designs each course (L3) and each session minute (L4/L5). Switches between four roles by stage, each with its own pass criteria.",
+    "zh": "把整个培训项目当产品打磨：先定几天、几天实战、客户哪天到场（L2 项目架构），再设计每门课的模块（L3 课程设计）与每一节课的分钟轴（L4/L5 磨课）。按阶段在四个角色间切换，每个角色判据独立，不互相顶替。"
+  },
+  "avatar": "avatars/expert.png",
+  "categoryId": "09-OperationsHR",
+  "defaultInitPrompt": {
+    "zh": "帮我设计一个培训项目（先定几天，再定每门课）",
+    "en": "Help me design a training program (days first, then courses)"
+  },
+  "plugin": "moke-expert",
+  "tags": [
+    {
+      "en": "Training Program",
+      "zh": "培训项目"
+    },
+    {
+      "en": "Course Design",
+      "zh": "课程设计"
+    },
+    {
+      "en": "Training Development",
+      "zh": "培训开发"
+    },
+    {
+      "en": "Course Review",
+      "zh": "磨课评审"
+    }
+  ],
+  "quickPrompts": [
+    {
+      "en": "Design a multi-day training program",
+      "zh": "帮我设计一个多天培训项目的架构"
+    },
+    {
+      "en": "Review the quality of my course project",
+      "zh": "评审一下这个课程项目的交付质量"
+    },
+    {
+      "en": "Polish the lecturer guide for this course",
+      "zh": "润色这门课的讲师手册"
+    }
+  ]
+}
